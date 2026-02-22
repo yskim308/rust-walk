@@ -3,6 +3,17 @@ use std::{
     fs, io,
 };
 
+pub struct LoxError {
+    line: usize,
+    message: String,
+}
+
+impl LoxError {
+    pub fn report(&self) {
+        eprint!("[line {}] Error {}", self.line, self.message)
+    }
+}
+
 fn main() {
     let args: Vec<String> = env::args().collect();
     let length = args.len();
