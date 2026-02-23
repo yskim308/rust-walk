@@ -1,7 +1,7 @@
 use crate::{
     error::LoxError,
     scanner::{
-        token::{self, Literal, Token},
+        token::{Literal, Token},
         token_type::TokenType,
     },
 };
@@ -144,5 +144,31 @@ impl Scanner {
             }
             _ => false,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Scanner;
+    use crate::scanner::token_type::TokenType;
+
+    #[test]
+    fn operators_scanned_properly() {
+        let mut scanner = Scanner::new("!==<=>=".to_string());
+        let tokens = scanner.scan_tokens();
+
+        assert!(matches!(tokens[0].token_type, TokenType::BangEqual));
+        assert_eq!(tokens[0].lexeme, "!=");
+
+        assert!(matches!(tokens[1].token_type, TokenType::Equal));
+        assert_eq!(tokens[1].lexeme, "=");
+
+        assert!(matches!(tokens[2].token_type, TokenType::LessEqual));
+        assert_eq!(tokens[2].lexeme, "<=");
+
+        assert!(matches!(tokens[3].token_type, TokenType::GreaterEqual));
+        assert_eq!(tokens[3].lexeme, ">=");
+
+        assert!(matches!(tokens[4].token_type, TokenType::EOF));
     }
 }
