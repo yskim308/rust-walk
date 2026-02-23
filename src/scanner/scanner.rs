@@ -73,10 +73,20 @@ impl Scanner {
             Some(b'>') => {
                 self.add_conditional_token(b'=', TokenType::GreaterEqual, TokenType::Greater)
             }
+            Some(b'/') => {
+                if self.match_current(b'/') {
+                    while self.peak() != Some(b'\n') && !self.is_at_end() {
+                        self.advance();
+                    }
+                } else {
+                    self.add_token(TokenType::Slash, None);
+                }
+            }
             None => self.errors.push(LoxError::new(
                 self.cursor.line,
                 format!("failed to get u8 at index {}", self.cursor.current),
             )),
+            Some(b'\n') => self.cursor.line += 1,
             _ => todo!("handle unexpected tokens and error handling in scanner"),
         }
     }
