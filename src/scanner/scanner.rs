@@ -1,6 +1,9 @@
-use crate::scanner::{
-    token::{Literal, Token},
-    token_type::TokenType,
+use crate::{
+    error::LoxError,
+    scanner::{
+        token::{Literal, Token},
+        token_type::TokenType,
+    },
 };
 
 struct Cursor {
@@ -13,6 +16,7 @@ pub struct Scanner {
     source: Vec<u8>,
     tokens: Vec<Token>,
     cursor: Cursor,
+    errors: Vec<LoxError>,
 }
 
 impl Scanner {
@@ -25,6 +29,7 @@ impl Scanner {
                 current: 0,
                 line: 1,
             },
+            errors: Vec::new(),
         }
     }
 
@@ -50,27 +55,36 @@ impl Scanner {
     }
 
     fn scan_token(&mut self) {
-        let c = *self.advance();
+        let c = self.advance();
         match c {
-            b'(' => self.add_token(TokenType::LeftParen, None),
-            b')' => self.add_token(TokenType::RightParen, None),
-            b'{' => self.add_token(TokenType::LeftBrace, None),
-            b'}' => self.add_token(TokenType::RightBrace, None),
-            b',' => self.add_token(TokenType::Comma, None),
-            b'.' => self.add_token(TokenType::Dot, None),
-            b'-' => self.add_token(TokenType::Minus, None),
-            b'+' => self.add_token(TokenType::Plus, None),
-            b';' => self.add_token(TokenType::Semicolon, None),
-            b'*' => self.add_token(TokenType::Star, None),
+            Some(b'(') => self.add_token(TokenType::LeftParen, None),
+            Some(b')') => self.add_token(TokenType::RightParen, None),
+            Some(b'{') => self.add_token(TokenType::LeftBrace, None),
+            Some(b'}') => self.add_token(TokenType::RightBrace, None),
+            Some(b',') => self.add_token(TokenType::Comma, None),
+            Some(b'.') => self.add_token(TokenType::Dot, None),
+            Some(b'-') => self.add_token(TokenType::Minus, None),
+            Some(b'+') => self.add_token(TokenType::Plus, None),
+            Some(b';') => self.add_token(TokenType::Semicolon, None),
+            Some(b'*') => self.add_token(TokenType::Star, None),
+            None => self.errors.push(LoxError::new(
+                self.cursor.line,
+                format!("failed to get u8 at index {}", self.cursor.current),
+            )),
             _ => todo!("handle unexpected tokens and error handling in scanner"),
         }
     }
 
-    fn advance(&mut self) -> &u8 {
-        let c = match self.source.get(self.cursor.current) {
-            Some(c) => c,
-            None => panic!("could not get u8...?"),
-        };
+    // not sure if we should be paniccing on invalid
+    fn peak(&self) -> Option<u8> {
+        if self.is_at_end() {
+            return Some(b'\0');
+        }
+        self.source.get(self.cursor.current).copied()
+    }
+
+    fn advance(&mut self) -> Option<u8> {
+        let c = self.peak();
         self.cursor.current += 1;
 
         c
