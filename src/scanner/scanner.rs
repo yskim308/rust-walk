@@ -57,6 +57,7 @@ impl Scanner {
     fn scan_token(&mut self) {
         let c = self.advance();
         match c {
+            // ================== OPERATORS =====================
             Some(b'(') => self.add_token(TokenType::LeftParen, None),
             Some(b')') => self.add_token(TokenType::RightParen, None),
             Some(b'{') => self.add_token(TokenType::LeftBrace, None),
@@ -82,6 +83,10 @@ impl Scanner {
                     self.add_token(TokenType::Slash, None);
                 }
             }
+            // =============== LITERALS ==================
+            Some(b'"') => self.handle_string(),
+
+            // others
             None => self.errors.push(LoxError::new(
                 self.cursor.line,
                 format!("failed to get u8 at index {}", self.cursor.current),
@@ -106,21 +111,29 @@ impl Scanner {
         c
     }
 
-    fn add_token(&mut self, token_type: TokenType, literal: Option<Literal>) {
+    fn add_token(&mut self, token_type: TokenType, mut literal: Option<Literal>) {
         let byte_slice = &self.source[self.cursor.start..self.cursor.current];
-        let string_slice = str::from_utf8(byte_slice).unwrap_or_else(|err| {
-            panic!(
-                "Invalid UTF-8 found on line {}, bytes: {:?}, with error: {}",
-                self.cursor.line, byte_slice, err
-            );
-        });
 
-        self.tokens.push(Token::new(
-            token_type,
-            string_slice.to_string(),
-            literal,
-            self.cursor.line,
-        ));
+        match str::from_utf8(byte_slice) {
+            Ok(string_slice) => {
+                if let Some(Literal::String(_)) = literal {
+                    literal = Some(Literal::String(string_slice.to_string()));
+                }
+                self.tokens.push(Token::new(
+                    token_type,
+                    string_slice.to_string(),
+                    literal,
+                    self.cursor.line,
+                ));
+            }
+            Err(err) => {
+                let msg = format!(
+                    "Invalid UTF-8 found on line {}, bytes: {:?}, with error: {}",
+                    self.cursor.line, byte_slice, err
+                );
+                self.errors.push(LoxError::new(self.cursor.line, msg));
+            }
+        }
     }
 
     fn add_conditional_token(&mut self, expected: u8, matched: TokenType, unmatched: TokenType) {
@@ -144,6 +157,31 @@ impl Scanner {
             }
             _ => false,
         }
+    }
+
+    fn handle_string(&mut self) {
+        let line_before = self.cursor.line;
+        while self.peak() != Some(b'"') && !self.is_at_end() {
+            if self.peak() == Some(b'\n') {
+                self.cursor.line += 1;
+            }
+            self.advance();
+        }
+
+        if self.is_at_end() {
+            self.errors.push(LoxError::new(
+                self.cursor.line,
+                "unterminated string".into(),
+            ));
+
+            self.cursor.current = self.cursor.start + 1;
+            self.cursor.line = line_before;
+        }
+
+        self.advance();
+
+        // we'll let the add token handle the string slicing
+        self.add_token(TokenType::String, Some(Literal::String(String::new())));
     }
 }
 
