@@ -1,7 +1,7 @@
 use crate::{
     error::LoxError,
     scanner::{
-        token::{Literal, Token},
+        token::{self, Literal, Token},
         token_type::TokenType,
     },
 };
@@ -67,6 +67,12 @@ impl Scanner {
             Some(b'+') => self.add_token(TokenType::Plus, None),
             Some(b';') => self.add_token(TokenType::Semicolon, None),
             Some(b'*') => self.add_token(TokenType::Star, None),
+            Some(b'!') => self.add_conditional_token(b'=', TokenType::BangEqual, TokenType::Bang),
+            Some(b'=') => self.add_conditional_token(b'=', TokenType::EqualEqual, TokenType::Equal),
+            Some(b'<') => self.add_conditional_token(b'=', TokenType::LessEqual, TokenType::Less),
+            Some(b'>') => {
+                self.add_conditional_token(b'=', TokenType::GreaterEqual, TokenType::Greater)
+            }
             None => self.errors.push(LoxError::new(
                 self.cursor.line,
                 format!("failed to get u8 at index {}", self.cursor.current),
@@ -105,5 +111,28 @@ impl Scanner {
             literal,
             self.cursor.line,
         ));
+    }
+
+    fn add_conditional_token(&mut self, expected: u8, matched: TokenType, unmatched: TokenType) {
+        let token_type = if self.match_current(expected) {
+            matched
+        } else {
+            unmatched
+        };
+        self.add_token(token_type, None);
+    }
+
+    fn match_current(&mut self, expected: u8) -> bool {
+        if self.is_at_end() {
+            return false;
+        }
+
+        match self.peak() {
+            Some(char) if expected == char => {
+                self.cursor.current += 1;
+                true
+            }
+            _ => false,
+        }
     }
 }
