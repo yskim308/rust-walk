@@ -26,6 +26,49 @@ pub enum LiteralValue {
     Nil,
 }
 
+impl Expr {
+    pub fn literal(value: LiteralValue) -> Self {
+        Expr::Literal { value }
+    }
+
+    pub fn grouping(expression: Expr) -> Self {
+        Expr::Grouping {
+            expression: Box::new(expression),
+        }
+    }
+
+    pub fn unary(token: Token, expression: Expr) -> Self {
+        Expr::Unary {
+            token,
+            expression: Box::new(expression),
+        }
+    }
+
+    pub fn binary(left_expr: Expr, operator: Token, right_expr: Expr) -> Self {
+        Expr::Binary {
+            left_expr: Box::new(left_expr),
+            operator,
+            right_expr: Box::new(right_expr),
+        }
+    }
+}
+
+impl From<f64> for Expr {
+    fn from(value: f64) -> Self {
+        Expr::Literal {
+            value: LiteralValue::Number(value),
+        }
+    }
+}
+
+impl From<i64> for Expr {
+    fn from(value: i64) -> Self {
+        Expr::Literal {
+            value: LiteralValue::Number(value as f64),
+        }
+    }
+}
+
 impl fmt::Display for LiteralValue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {

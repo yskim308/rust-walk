@@ -4,7 +4,7 @@ use std::{
 };
 
 use rlox::{
-    ast::expression::{Expr, LiteralValue},
+    ast::expression::Expr,
     scanner::{token::Token, token_type::TokenType},
 };
 
@@ -55,19 +55,15 @@ fn run(_source: String) {
 }
 
 fn check_pretty_print() {
-    let expr = Expr::Binary {
-        left_expr: Box::new(Expr::Unary {
-            token: Token::new(TokenType::Minus, "-".to_string(), None, 1),
-            expression: Box::new(Expr::Literal {
-                value: LiteralValue::Number(123.),
-            }),
-        }),
-        operator: Token::new(TokenType::Star, "*".to_string(), None, 1),
-        right_expr: Box::new(Expr::Grouping {
-            expression: Box::new(Expr::Literal {
-                value: LiteralValue::Number(45.67),
-            }),
-        }),
-    };
-    println!("{expr}");
+    let left_expr = Expr::unary(
+        Token::new(TokenType::Minus, "-".into(), None, 1),
+        123.into(),
+    );
+
+    let star = Token::new(TokenType::Star, "*".into(), None, 1);
+
+    let right_expr = Expr::grouping(45.67.into());
+
+    let bin_expr = Expr::binary(left_expr, star, right_expr);
+    println!("{bin_expr}");
 }
