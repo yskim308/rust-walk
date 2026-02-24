@@ -110,6 +110,8 @@ impl Scanner {
                     while self.peek() != Some(b'\n') && !self.is_at_end() {
                         self.advance();
                     }
+                } else if self.match_current(b'*') {
+                    self.skip_bulk_comments();
                 } else {
                     self.add_token(TokenType::Slash, None);
                 }
@@ -156,6 +158,29 @@ impl Scanner {
         }
 
         c
+    }
+
+    fn skip_bulk_comments(&mut self) {
+        // looking for */ pattern
+        let original_line = self.cursor.line;
+        while (self.peek() != Some(b'*') || self.peek_next() != Some(b'/')) && !self.is_at_end() {
+            if self.peek() == Some(b'\n') {
+                self.cursor.line += 1;
+            }
+            self.advance();
+        }
+
+        if self.is_at_end() {
+            self.errors.push(LoxError::new(
+                original_line,
+                "unterminated bulk comment".to_string(),
+            ));
+            return;
+        }
+
+        // skip */
+        self.advance();
+        self.advance();
     }
 
     fn add_token(&mut self, token_type: TokenType, literal: Option<Literal>) {

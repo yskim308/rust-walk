@@ -51,6 +51,17 @@ fn identifiers_scanned_properly() {
     assert!(matches!(tokens[1].token_type, TokenType::EOF));
 }
 
+#[test]
+fn bulk_comments_are_skipped() {
+    let mut scanner = Scanner::new("/* ignore this */+".to_string());
+    let (tokens, errors) = scanner.scan_tokens();
+    assert_eq!(errors.len(), 0);
+
+    assert!(matches!(tokens[0].token_type, TokenType::Plus));
+    assert_eq!(tokens[0].lexeme, "+");
+    assert!(matches!(tokens[1].token_type, TokenType::EOF));
+}
+
 mod operator_errors {
     use super::*;
 
