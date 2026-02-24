@@ -33,7 +33,7 @@ impl Scanner {
         }
     }
 
-    pub fn scan_tokens(&mut self) -> Vec<Token> {
+    pub fn scan_tokens(&mut self) -> (Vec<Token>, Vec<LoxError>) {
         while !self.is_at_end() {
             self.cursor.start = self.cursor.current;
             self.scan_token();
@@ -46,7 +46,7 @@ impl Scanner {
             self.cursor.line,
         ));
 
-        self.tokens.clone()
+        (self.tokens.clone(), self.errors.clone())
     }
 
     // to be honest probably don't need this abstraction but oh well
