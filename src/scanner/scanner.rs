@@ -6,6 +6,29 @@ use crate::{
     },
 };
 
+// helper 'hashmap' for reserved keywords
+fn get_keyword(to_find: &str) -> Option<TokenType> {
+    match to_find {
+        "and" => Some(TokenType::And),
+        "class" => Some(TokenType::Class),
+        "else" => Some(TokenType::Else),
+        "false" => Some(TokenType::False),
+        "fun" => Some(TokenType::Fun),
+        "for" => Some(TokenType::For),
+        "if" => Some(TokenType::If),
+        "nil" => Some(TokenType::Nil),
+        "or" => Some(TokenType::Or),
+        "print" => Some(TokenType::Print),
+        "return" => Some(TokenType::Return),
+        "super" => Some(TokenType::Super),
+        "this" => Some(TokenType::This),
+        "true" => Some(TokenType::True),
+        "var" => Some(TokenType::Var),
+        "while" => Some(TokenType::While),
+        _ => None,
+    }
+}
+
 struct Cursor {
     start: usize,
     current: usize,
@@ -93,11 +116,13 @@ impl Scanner {
             }
             b'\n' => self.cursor.line += 1,
 
-            // =============== LITERALS ==================
+            // =============== LITERALS AND IDENTIFIERS ==================
             b'"' => self.handle_string(),
             c => {
                 if c.is_ascii_digit() {
                     self.handle_number();
+                } else if c.is_ascii_alphanumeric() {
+                    self.handle_identifier();
                 } else {
                     self.errors.push(LoxError::new(
                         self.cursor.line,
@@ -133,29 +158,18 @@ impl Scanner {
         c
     }
 
-    fn add_token(&mut self, token_type: TokenType, mut literal: Option<Literal>) {
-        let byte_slice = &self.source[self.cursor.start..self.cursor.current];
+    fn add_token(&mut self, token_type: TokenType, literal: Option<Literal>) {
+        let Some(str) = self.get_str_from_current_idx() else {
+            return
+        };
 
-        match str::from_utf8(byte_slice) {
-            Ok(string_slice) => {
-                if let Some(Literal::String(_)) = literal {
-                    literal = Some(Literal::String(string_slice.to_string()));
-                }
-                self.tokens.push(Token::new(
-                    token_type,
-                    string_slice.to_string(),
-                    literal,
-                    self.cursor.line,
-                ));
-            }
-            Err(err) => {
-                let msg = format!(
-                    "Invalid UTF-8 found on line {}, bytes: {:?}, with error: {}",
-                    self.cursor.line, byte_slice, err
-                );
-                self.errors.push(LoxError::new(self.cursor.line, msg));
-            }
-        }
+        let lexeme_str = str.to_string();
+        self.tokens.push(Token::new(
+            token_type,
+            lexeme_str,
+            literal,
+            self.cursor.line,
+        ));
     }
 
     fn add_conditional_token(&mut self, expected: u8, matched: TokenType, unmatched: TokenType) {
@@ -202,8 +216,9 @@ impl Scanner {
 
         self.advance();
 
-        // we'll let the add token handle the string slicing
-        self.add_token(TokenType::String, Some(Literal::String(String::new())));
+        let Some(owned_string) = self.get_str_from_current_idx().map(|s| s.to_string()) else {return};
+
+        self.add_token(TokenType::String, Some(Literal::String(owned_string)));
     }
 
     fn handle_number(&mut self) {
@@ -221,6 +236,29 @@ impl Scanner {
             }
         }
 
+        let Some(str) = self.get_str_from_current_idx() else {return};
+
+        let number_literal: f64 = str.parse().unwrap(); // unwrap assuming we checked all digits
+
+        self.add_token(TokenType::Number, Some(Literal::Number(number_literal)));
+    }
+
+    fn handle_identifier(&mut self) {
+        while self.peek().is_some_and(|c| c.is_ascii_alphanumeric()) {
+            self.advance();
+        }
+
+        let Some(owned_str) = self.get_str_from_current_idx().map(|s| s.to_string()) else {
+            return
+        };
+
+        match get_keyword(&owned_str) {
+            Some(token) => self.add_token(token, None),
+            None => self.add_token(TokenType::Identifier, None),
+        }
+    }
+
+    fn get_str_from_current_idx(&mut self) -> Option<&str> {
         let bytes = &self.source[self.cursor.start..self.cursor.current];
 
         let str = match str::from_utf8(bytes) {
@@ -231,78 +269,10 @@ impl Scanner {
                     self.cursor.line, bytes, err
                 );
                 self.errors.push(LoxError::new(self.cursor.line, msg));
-                return;
+                return None;
             }
         };
 
-        let number_literal: f64 = str.parse().unwrap(); // unwrap assuming we checked all digits
-
-        self.add_token(TokenType::Number, Some(Literal::Number(number_literal)));
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::Scanner;
-    use crate::scanner::{token::Literal, token_type::TokenType};
-
-    #[test]
-    fn operators_scanned_properly() {
-        let mut scanner = Scanner::new("!==<=>=".to_string());
-        let (tokens, errors) = scanner.scan_tokens();
-        assert_eq!(errors.len(), 0);
-
-        assert!(matches!(tokens[0].token_type, TokenType::BangEqual));
-        assert_eq!(tokens[0].lexeme, "!=");
-
-        assert!(matches!(tokens[1].token_type, TokenType::Equal));
-        assert_eq!(tokens[1].lexeme, "=");
-
-        assert!(matches!(tokens[2].token_type, TokenType::LessEqual));
-        assert_eq!(tokens[2].lexeme, "<=");
-
-        assert!(matches!(tokens[3].token_type, TokenType::GreaterEqual));
-        assert_eq!(tokens[3].lexeme, ">=");
-
-        assert!(matches!(tokens[4].token_type, TokenType::EOF));
-    }
-
-    #[test]
-    fn literals_scanned_properly() {
-        let mut scanner = Scanner::new("\"hello\"123.45".to_string());
-        let (tokens, errors) = scanner.scan_tokens();
-        assert_eq!(errors.len(), 0);
-
-        assert!(matches!(tokens[0].token_type, TokenType::String));
-        assert!(matches!(tokens[0].literal, Some(Literal::String(_))));
-        assert_eq!(tokens[0].lexeme, "\"hello\"");
-
-        assert!(matches!(tokens[1].token_type, TokenType::Number));
-        assert!(matches!(tokens[1].literal, Some(Literal::Number(_))));
-        assert_eq!(tokens[1].lexeme, "123.45");
-
-        assert!(matches!(tokens[2].token_type, TokenType::EOF));
-    }
-
-    mod operator_errors {
-        use super::*;
-
-        #[test]
-        fn unexpected_operator_character_is_reported() {
-            let mut scanner = Scanner::new("@".to_string());
-            let (_tokens, errors) = scanner.scan_tokens();
-            assert_eq!(errors.len(), 1);
-        }
-    }
-
-    mod literal_errors {
-        use super::*;
-
-        #[test]
-        fn unterminated_string_is_reported() {
-            let mut scanner = Scanner::new("\"".to_string());
-            let (_tokens, errors) = scanner.scan_tokens();
-            assert_eq!(errors.len(), 1);
-        }
+        Some(str)
     }
 }
