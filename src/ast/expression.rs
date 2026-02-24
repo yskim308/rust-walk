@@ -1,4 +1,5 @@
 use crate::scanner::token::Token;
+use std::fmt;
 
 pub enum Expr {
     Literal {
@@ -25,30 +26,31 @@ pub enum LiteralValue {
     Nil,
 }
 
-impl Expr {
-    pub fn pretty_print(&self) -> String {
+impl fmt::Display for LiteralValue {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Expr::Literal { value } => match value {
-                LiteralValue::Number(n) => n.to_string(),
-                LiteralValue::String(s) => s.clone(),
-                LiteralValue::Boolean(b) => b.to_string(),
-                LiteralValue::Nil => "Nil".to_string(),
-            },
-            Expr::Grouping { expression } => expression.pretty_print(),
+            LiteralValue::Number(n) => write!(f, "{n}"),
+            LiteralValue::String(s) => write!(f, "{s}"),
+            LiteralValue::Boolean(b) => write!(f, "{b}"),
+            LiteralValue::Nil => write!(f, "Nil"),
+        }
+    }
+}
+
+impl fmt::Display for Expr {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Expr::Literal { value } => write!(f, "{value}"),
+            Expr::Grouping { expression } => write!(f, "(group {expression})"),
             Expr::Unary { token, expression } => {
-                format!("{} {}", token.lexeme, expression.pretty_print())
+                write!(f, "({} {expression})", token.lexeme)
             }
             Expr::Binary {
                 left_expr,
                 operator,
                 right_expr,
             } => {
-                format!(
-                    "{} {} {}",
-                    left_expr.pretty_print(),
-                    operator.lexeme,
-                    right_expr.pretty_print()
-                )
+                write!(f, "({left_expr} {} {right_expr})", operator.lexeme)
             }
         }
     }
