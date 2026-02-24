@@ -55,58 +55,80 @@ impl Scanner {
     }
 
     fn scan_token(&mut self) {
-        let c = self.advance();
+        let c = match self.advance() {
+            Some(c) => c,
+            None => {
+                self.errors.push(LoxError::new(
+                    self.cursor.line,
+                    format!("failed to get u8 at index {}", self.cursor.current),
+                ));
+                return;
+            }
+        };
+
         match c {
             // ================== OPERATORS =====================
-            Some(b'(') => self.add_token(TokenType::LeftParen, None),
-            Some(b')') => self.add_token(TokenType::RightParen, None),
-            Some(b'{') => self.add_token(TokenType::LeftBrace, None),
-            Some(b'}') => self.add_token(TokenType::RightBrace, None),
-            Some(b',') => self.add_token(TokenType::Comma, None),
-            Some(b'.') => self.add_token(TokenType::Dot, None),
-            Some(b'-') => self.add_token(TokenType::Minus, None),
-            Some(b'+') => self.add_token(TokenType::Plus, None),
-            Some(b';') => self.add_token(TokenType::Semicolon, None),
-            Some(b'*') => self.add_token(TokenType::Star, None),
-            Some(b'!') => self.add_conditional_token(b'=', TokenType::BangEqual, TokenType::Bang),
-            Some(b'=') => self.add_conditional_token(b'=', TokenType::EqualEqual, TokenType::Equal),
-            Some(b'<') => self.add_conditional_token(b'=', TokenType::LessEqual, TokenType::Less),
-            Some(b'>') => {
-                self.add_conditional_token(b'=', TokenType::GreaterEqual, TokenType::Greater)
-            }
-            Some(b'/') => {
+            b'(' => self.add_token(TokenType::LeftParen, None),
+            b')' => self.add_token(TokenType::RightParen, None),
+            b'{' => self.add_token(TokenType::LeftBrace, None),
+            b'}' => self.add_token(TokenType::RightBrace, None),
+            b',' => self.add_token(TokenType::Comma, None),
+            b'.' => self.add_token(TokenType::Dot, None),
+            b'-' => self.add_token(TokenType::Minus, None),
+            b'+' => self.add_token(TokenType::Plus, None),
+            b';' => self.add_token(TokenType::Semicolon, None),
+            b'*' => self.add_token(TokenType::Star, None),
+            b'!' => self.add_conditional_token(b'=', TokenType::BangEqual, TokenType::Bang),
+            b'=' => self.add_conditional_token(b'=', TokenType::EqualEqual, TokenType::Equal),
+            b'<' => self.add_conditional_token(b'=', TokenType::LessEqual, TokenType::Less),
+            b'>' => self.add_conditional_token(b'=', TokenType::GreaterEqual, TokenType::Greater),
+            b'/' => {
                 if self.match_current(b'/') {
-                    while self.peak() != Some(b'\n') && !self.is_at_end() {
+                    while self.peek() != Some(b'\n') && !self.is_at_end() {
                         self.advance();
                     }
                 } else {
                     self.add_token(TokenType::Slash, None);
                 }
             }
-            // =============== LITERALS ==================
-            Some(b'"') => self.handle_string(),
+            b'\n' => self.cursor.line += 1,
 
-            // others
-            None => self.errors.push(LoxError::new(
-                self.cursor.line,
-                format!("failed to get u8 at index {}", self.cursor.current),
-            )),
-            Some(b'\n') => self.cursor.line += 1,
-            _ => todo!("handle unexpected tokens and error handling in scanner"),
+            // =============== LITERALS ==================
+            b'"' => self.handle_string(),
+            c => {
+                if c.is_ascii_digit() {
+                    self.handle_number();
+                } else {
+                    self.errors.push(LoxError::new(
+                        self.cursor.line,
+                        format!("unexpected token: {}", c),
+                    ));
+                }
+            }
         }
     }
 
     // not sure if we should be paniccing on invalid
-    fn peak(&self) -> Option<u8> {
+    fn peek(&self) -> Option<u8> {
         if self.is_at_end() {
-            return Some(b'\0');
+            return None;
         }
         self.source.get(self.cursor.current).copied()
     }
 
+    fn peek_next(&self) -> Option<u8> {
+        if self.cursor.current + 1 >= self.source.len() {
+            return Some(b'\0');
+        }
+
+        self.source.get(self.cursor.current + 1).copied()
+    }
+
     fn advance(&mut self) -> Option<u8> {
-        let c = self.peak();
-        self.cursor.current += 1;
+        let c = self.peek();
+        if c.is_some() {
+            self.cursor.current += 1;
+        }
 
         c
     }
@@ -150,7 +172,7 @@ impl Scanner {
             return false;
         }
 
-        match self.peak() {
+        match self.peek() {
             Some(char) if expected == char => {
                 self.cursor.current += 1;
                 true
@@ -161,8 +183,8 @@ impl Scanner {
 
     fn handle_string(&mut self) {
         let line_before = self.cursor.line;
-        while self.peak() != Some(b'"') && !self.is_at_end() {
-            if self.peak() == Some(b'\n') {
+        while self.peek() != Some(b'"') && !self.is_at_end() {
+            if self.peek() == Some(b'\n') {
                 self.cursor.line += 1;
             }
             self.advance();
@@ -182,6 +204,40 @@ impl Scanner {
 
         // we'll let the add token handle the string slicing
         self.add_token(TokenType::String, Some(Literal::String(String::new())));
+    }
+
+    fn handle_number(&mut self) {
+        while self.peek().is_some_and(|c| c.is_ascii_digit()) {
+            self.advance();
+        }
+
+        if self.peek().is_some_and(|c| c == b'.')
+            && self.peek_next().is_some_and(|c| c.is_ascii_digit())
+        {
+            self.advance();
+
+            while self.peek().is_some_and(|c| c.is_ascii_digit()) {
+                self.advance();
+            }
+        }
+
+        let bytes = &self.source[self.cursor.start..self.cursor.current];
+
+        let str = match str::from_utf8(bytes) {
+            Ok(str) => str,
+            Err(err) => {
+                let msg = format!(
+                    "Invalid UTF-8 found on line {}, bytes: {:?}, with error: {}",
+                    self.cursor.line, bytes, err
+                );
+                self.errors.push(LoxError::new(self.cursor.line, msg));
+                return;
+            }
+        };
+
+        let number_literal: f64 = str.parse().unwrap(); // unwrap assuming we checked all digits
+
+        self.add_token(TokenType::Number, Some(Literal::Number(number_literal)));
     }
 }
 
