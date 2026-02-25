@@ -84,7 +84,7 @@ impl Parser {
     fn unary(&mut self) -> Result<Expr, LoxError> {
         if self.check_current_type(TokenType::Bang) || self.check_current_type(TokenType::Minus) {
             let op = self.advance();
-            let right = self.primary()?;
+            let right = self.unary()?;
             return Ok(Expr::unary(op, right));
         }
 
@@ -92,7 +92,7 @@ impl Parser {
     }
 
     fn primary(&mut self) -> Result<Expr, LoxError> {
-        let token = self.peek().clone();
+        let token = self.advance();
         Ok(match token.token_type {
             TokenType::False => Expr::literal(LiteralValue::Boolean(false)),
             TokenType::True => Expr::literal(LiteralValue::Boolean(true)),
@@ -154,10 +154,13 @@ impl Parser {
     }
 
     fn is_at_end(&self) -> bool {
-        self.current >= self.tokens.len()
+        self.current >= self.tokens.len() || self.tokens[self.current].token_type == TokenType::EOF
     }
 
     fn check_current_type(&self, token_type: TokenType) -> bool {
+        if self.current >= self.tokens.len() {
+            return false;
+        }
         self.peek().token_type == token_type
     }
 
