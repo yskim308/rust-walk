@@ -5,7 +5,7 @@ use std::{
 
 use rlox::{
     ast::{expression::Expr, parser::Parser},
-    scanner::{scanner::Scanner, token::Token, token_type::TokenType},
+    scanner::{token::Token, token_type::TokenType, Scanner},
 };
 
 fn main() {

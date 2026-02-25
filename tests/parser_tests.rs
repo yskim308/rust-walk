@@ -1,4 +1,4 @@
-use rlox::{ast::parser::Parser, scanner::scanner::Scanner};
+use rlox::{ast::parser::Parser, scanner::Scanner};
 
 fn parse_expression(source: &str) -> Result<String, String> {
     let mut scanner = Scanner::new(source.to_string());
@@ -9,7 +9,10 @@ fn parse_expression(source: &str) -> Result<String, String> {
     }
 
     let mut parser = Parser::new(tokens);
-    parser.parse().map(|expr| expr.to_string()).map_err(|e| e.to_string())
+    parser
+        .parse()
+        .map(|expr| expr.to_string())
+        .map_err(|e| e.to_string())
 }
 
 #[test]
@@ -30,11 +33,13 @@ fn parses_unary_expressions() {
 #[test]
 fn parses_binary_precedence() {
     assert_eq!(parse_expression("1+2*3").unwrap(), "(1 + (2 * 3))");
-    assert_eq!(parse_expression("1<2==false").unwrap(), "((1 < 2) == false)");
+    assert_eq!(
+        parse_expression("1<2==false").unwrap(),
+        "((1 < 2) == false)"
+    );
 }
 
 #[test]
 fn parses_grouping_and_basic_nesting() {
     assert_eq!(parse_expression("!(1+2)").unwrap(), "(! (group (1 + 2)))");
 }
-

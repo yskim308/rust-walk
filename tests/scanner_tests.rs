@@ -1,4 +1,4 @@
-use rlox::scanner::{scanner::Scanner, token::Literal, token_type::TokenType};
+use rlox::scanner::{token::Literal, token_type::TokenType, Scanner};
 
 #[test]
 fn operators_scanned_properly() {
