@@ -91,16 +91,16 @@ impl Scanner {
 
         match c {
             // ================== OPERATORS =====================
-            b'(' => self.add_token(TokenType::LeftParen, None),
-            b')' => self.add_token(TokenType::RightParen, None),
-            b'{' => self.add_token(TokenType::LeftBrace, None),
-            b'}' => self.add_token(TokenType::RightBrace, None),
-            b',' => self.add_token(TokenType::Comma, None),
-            b'.' => self.add_token(TokenType::Dot, None),
-            b'-' => self.add_token(TokenType::Minus, None),
-            b'+' => self.add_token(TokenType::Plus, None),
-            b';' => self.add_token(TokenType::Semicolon, None),
-            b'*' => self.add_token(TokenType::Star, None),
+            b'(' => self.extract_and_add_token(TokenType::LeftParen, None),
+            b')' => self.extract_and_add_token(TokenType::RightParen, None),
+            b'{' => self.extract_and_add_token(TokenType::LeftBrace, None),
+            b'}' => self.extract_and_add_token(TokenType::RightBrace, None),
+            b',' => self.extract_and_add_token(TokenType::Comma, None),
+            b'.' => self.extract_and_add_token(TokenType::Dot, None),
+            b'-' => self.extract_and_add_token(TokenType::Minus, None),
+            b'+' => self.extract_and_add_token(TokenType::Plus, None),
+            b';' => self.extract_and_add_token(TokenType::Semicolon, None),
+            b'*' => self.extract_and_add_token(TokenType::Star, None),
             b'!' => self.add_conditional_token(b'=', TokenType::BangEqual, TokenType::Bang),
             b'=' => self.add_conditional_token(b'=', TokenType::EqualEqual, TokenType::Equal),
             b'<' => self.add_conditional_token(b'=', TokenType::LessEqual, TokenType::Less),
@@ -113,7 +113,7 @@ impl Scanner {
                 } else if self.match_current(b'*') {
                     self.skip_bulk_comments();
                 } else {
-                    self.add_token(TokenType::Slash, None);
+                    self.extract_and_add_token(TokenType::Slash, None);
                 }
             }
             b'\n' => self.cursor.line += 1,
@@ -183,7 +183,12 @@ impl Scanner {
         self.advance();
     }
 
-    fn add_token(&mut self, token_type: TokenType, literal: Option<Literal>) {
+    fn add_token(&mut self, lexeme: String, token_type: TokenType, literal: Option<Literal>) {
+        self.tokens
+            .push(Token::new(token_type, lexeme, literal, self.cursor.line));
+    }
+
+    fn extract_and_add_token(&mut self, token_type: TokenType, literal: Option<Literal>) {
         let Some(str) = self.get_str_from_current_idx() else {
             return
         };
@@ -203,7 +208,7 @@ impl Scanner {
         } else {
             unmatched
         };
-        self.add_token(token_type, None);
+        self.extract_and_add_token(token_type, None);
     }
 
     fn match_current(&mut self, expected: u8) -> bool {
@@ -242,8 +247,13 @@ impl Scanner {
         self.advance();
 
         let Some(owned_string) = self.get_str_from_current_idx().map(|s| s.to_string()) else {return};
+        let value = owned_string.to_string();
 
-        self.add_token(TokenType::String, Some(Literal::String(owned_string)));
+        self.add_token(
+            owned_string,
+            TokenType::String,
+            Some(Literal::String(value)),
+        );
     }
 
     fn handle_number(&mut self) {
@@ -261,11 +271,15 @@ impl Scanner {
             }
         }
 
-        let Some(str) = self.get_str_from_current_idx() else {return};
+        let Some(str) = self.get_str_from_current_idx().map(|s| s.to_string()) else {return};
 
         let number_literal: f64 = str.parse().unwrap(); // unwrap assuming we checked all digits
 
-        self.add_token(TokenType::Number, Some(Literal::Number(number_literal)));
+        self.add_token(
+            str,
+            TokenType::Number,
+            Some(Literal::Number(number_literal)),
+        );
     }
 
     fn handle_identifier(&mut self) {
@@ -278,8 +292,8 @@ impl Scanner {
         };
 
         match get_keyword(&owned_str) {
-            Some(token) => self.add_token(token, None),
-            None => self.add_token(TokenType::Identifier, None),
+            Some(token) => self.add_token(owned_str, token, None),
+            None => self.add_token(owned_str, TokenType::Identifier, None),
         }
     }
 
