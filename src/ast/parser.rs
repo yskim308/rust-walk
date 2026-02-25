@@ -34,7 +34,49 @@ impl Parser {
         expr
     }
 
-    fn comparison(&self) -> Expr {
+    fn comparison(&mut self) -> Expr {
+        let mut expr = self.term();
+
+        while self.check_current_type(TokenType::LessEqual)
+            || self.check_current_type(TokenType::Less)
+            || self.check_current_type(TokenType::Greater)
+            || self.check_current_type(TokenType::GreaterEqual)
+        {
+            let operator = self.advance();
+            let right = self.term();
+            expr = Expr::binary(expr, operator, right);
+        }
+
+        expr
+    }
+
+    fn term(&mut self) -> Expr {
+        let mut expr = self.factor();
+
+        while self.check_current_type(TokenType::Minus) || self.check_current_type(TokenType::Plus)
+        {
+            let operator = self.advance();
+            let right = self.factor();
+            expr = Expr::binary(expr, operator, right);
+        }
+
+        expr
+    }
+
+    fn factor(&mut self) -> Expr {
+        let mut expr = self.unary();
+
+        while self.check_current_type(TokenType::Star) || self.check_current_type(TokenType::Slash)
+        {
+            let op = self.advance();
+            let right = self.unary();
+            expr = Expr::binary(expr, op, right);
+        }
+
+        expr
+    }
+
+    fn unary(&mut self) -> Expr {
         todo!()
     }
 
