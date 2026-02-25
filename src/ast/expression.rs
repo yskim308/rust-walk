@@ -1,6 +1,7 @@
 use crate::scanner::token::Token;
 use std::fmt;
 
+#[derive(Debug)]
 pub enum Expr {
     Literal {
         value: LiteralValue,
@@ -19,6 +20,7 @@ pub enum Expr {
     },
 }
 
+#[derive(Debug)]
 pub enum LiteralValue {
     Number(f64),
     String(String),
