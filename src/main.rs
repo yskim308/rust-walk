@@ -4,8 +4,8 @@ use std::{
 };
 
 use rlox::{
-    ast::expression::Expr,
-    scanner::{token::Token, token_type::TokenType},
+    ast::{expression::Expr, parser::Parser},
+    scanner::{scanner::Scanner, token::Token, token_type::TokenType},
 };
 
 fn main() {
@@ -50,8 +50,12 @@ fn run_by_prompt() -> io::Result<()> {
     Ok(())
 }
 
-fn run(_source: String) {
-    todo!("scanner + tokens must be implemented in run");
+fn run(source: String) {
+    let mut scanner = Scanner::new(source);
+    let (tokens, errors) = scanner.scan_tokens();
+    let mut parser = Parser::new(tokens);
+    let expression = parser.parse();
+    todo!("finish the rest?")
 }
 
 fn check_pretty_print() {

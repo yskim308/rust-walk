@@ -2,7 +2,7 @@ use crate::{
     ast::expression::{Expr, LiteralValue},
     error::LoxError,
     scanner::{
-        token::{self, Literal, Token},
+        token::{Literal, Token},
         token_type::TokenType,
     },
 };
@@ -15,6 +15,10 @@ pub struct Parser {
 impl Parser {
     pub fn new(tokens: Vec<Token>) -> Self {
         Parser { tokens, current: 0 }
+    }
+
+    pub fn parse(&mut self) -> Result<Expr, LoxError> {
+        self.expression()
     }
 
     fn expression(&mut self) -> Result<Expr, LoxError> {
@@ -122,8 +126,31 @@ impl Parser {
         })
     }
 
-    fn consume(&self, token_type: TokenType, msg: String) -> Result<(), LoxError> {
-        todo!()
+    fn consume(&mut self, token_type: TokenType, msg: String) -> Result<(), LoxError> {
+        if self.check_current_type(token_type) {
+            self.advance();
+            return Ok(());
+        }
+        Err(LoxError::new(self.peek().line, msg))
+    }
+
+    fn synchronize(&mut self) {
+        self.advance();
+
+        while !self.is_at_end() {
+            match self.peek().token_type {
+                TokenType::Class => todo!(),
+                TokenType::Fun => todo!(),
+                TokenType::Var => todo!(),
+                TokenType::For => todo!(),
+                TokenType::If => todo!(),
+                TokenType::While => todo!(),
+                TokenType::Print => todo!(),
+                TokenType::Return => todo!(),
+                _ => todo!(),
+            }
+            self.advance();
+        }
     }
 
     fn is_at_end(&self) -> bool {
