@@ -1,7 +1,8 @@
 use crate::{
-    ast::expression::Expr,
+    ast::expression::{Expr, LiteralValue},
+    error::LoxError,
     scanner::{
-        token::{self, Token},
+        token::{self, Literal, Token},
         token_type::TokenType,
     },
 };
@@ -16,26 +17,26 @@ impl Parser {
         Parser { tokens, current: 0 }
     }
 
-    fn expression(&mut self) -> Expr {
+    fn expression(&mut self) -> Result<Expr, LoxError> {
         self.equality()
     }
 
-    fn equality(&mut self) -> Expr {
-        let mut expr = self.comparison();
+    fn equality(&mut self) -> Result<Expr, LoxError> {
+        let mut expr = self.comparison()?;
 
         while self.check_current_type(TokenType::BangEqual)
             || self.check_current_type(TokenType::EqualEqual)
         {
             let operator = self.advance();
-            let right = self.comparison();
+            let right = self.comparison()?;
             expr = Expr::binary(expr, operator, right);
         }
 
-        expr
+        Ok(expr)
     }
 
-    fn comparison(&mut self) -> Expr {
-        let mut expr = self.term();
+    fn comparison(&mut self) -> Result<Expr, LoxError> {
+        let mut expr = self.term()?;
 
         while self.check_current_type(TokenType::LessEqual)
             || self.check_current_type(TokenType::Less)
@@ -43,40 +44,85 @@ impl Parser {
             || self.check_current_type(TokenType::GreaterEqual)
         {
             let operator = self.advance();
-            let right = self.term();
+            let right = self.term()?;
             expr = Expr::binary(expr, operator, right);
         }
 
-        expr
+        Ok(expr)
     }
 
-    fn term(&mut self) -> Expr {
-        let mut expr = self.factor();
+    fn term(&mut self) -> Result<Expr, LoxError> {
+        let mut expr = self.factor()?;
 
         while self.check_current_type(TokenType::Minus) || self.check_current_type(TokenType::Plus)
         {
             let operator = self.advance();
-            let right = self.factor();
+            let right = self.factor()?;
             expr = Expr::binary(expr, operator, right);
         }
 
-        expr
+        Ok(expr)
     }
 
-    fn factor(&mut self) -> Expr {
-        let mut expr = self.unary();
+    fn factor(&mut self) -> Result<Expr, LoxError> {
+        let mut expr = self.unary()?;
 
         while self.check_current_type(TokenType::Star) || self.check_current_type(TokenType::Slash)
         {
             let op = self.advance();
-            let right = self.unary();
+            let right = self.unary()?;
             expr = Expr::binary(expr, op, right);
         }
 
-        expr
+        Ok(expr)
     }
 
-    fn unary(&mut self) -> Expr {
+    fn unary(&mut self) -> Result<Expr, LoxError> {
+        if self.check_current_type(TokenType::Bang) || self.check_current_type(TokenType::Minus) {
+            let op = self.advance();
+            let right = self.primary()?;
+            return Ok(Expr::unary(op, right));
+        }
+
+        self.primary()
+    }
+
+    fn primary(&mut self) -> Result<Expr, LoxError> {
+        let token = self.peek().clone();
+        Ok(match token.token_type {
+            TokenType::False => Expr::literal(LiteralValue::Boolean(false)),
+            TokenType::True => Expr::literal(LiteralValue::Boolean(true)),
+            TokenType::Nil => Expr::literal(LiteralValue::Nil),
+            TokenType::Number => {
+                let Literal::Number(number) = token.literal.unwrap() else {
+                    panic!("Error while handling token, TokenType::Number does not have a Literal::Number payload");
+                };
+                Expr::literal(LiteralValue::Number(number))
+            }
+            TokenType::String => {
+                let Literal::String(s) = token.literal.unwrap() else {
+                    panic!("Error while handling token, TokenType::String does not have a Literal::String payload");
+                };
+                Expr::literal(LiteralValue::String(s))
+            }
+            TokenType::LeftParen => {
+                let expr = self.expression()?;
+                self.consume(
+                    TokenType::RightParen,
+                    "Expected ')' after expression".to_string(),
+                )?;
+                Expr::grouping(expr)
+            }
+            _ => {
+                return Err(LoxError::new(
+                    token.line,
+                    "expected some expression".to_string(),
+                ))
+            }
+        })
+    }
+
+    fn consume(&self, token_type: TokenType, msg: String) -> Result<(), LoxError> {
         todo!()
     }
 
