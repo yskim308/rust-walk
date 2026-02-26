@@ -1,6 +1,7 @@
 use crate::{
     ast::expression::{Expr, LiteralValue},
     error::LoxError,
+    interpreter::stmt::Stmt,
     scanner::{
         token::{Literal, Token},
         token_type::TokenType,
@@ -17,8 +18,31 @@ impl Parser {
         Parser { tokens, current: 0 }
     }
 
-    pub fn parse(&mut self) -> Result<Expr, LoxError> {
-        self.expression()
+    pub fn parse(&mut self) -> Result<Vec<Stmt>, LoxError> {
+        let mut statements: Vec<Stmt> = Vec::new();
+        while !self.is_at_end() {
+            statements.push(self.statement()?);
+        }
+        Ok(statements)
+    }
+
+    fn statement(&mut self) -> Result<Stmt, LoxError> {
+        match self.peek().token_type {
+            TokenType::Print => self.print_statement(),
+            _ => self.expression_statement(),
+        }
+    }
+
+    fn print_statement(&mut self) -> Result<Stmt, LoxError> {
+        let expression = self.expression()?;
+        self.consume(TokenType::Semicolon, "Expected ';' after value".to_string())?;
+        Ok(Stmt::Print(expression))
+    }
+
+    fn expression_statement(&mut self) -> Result<Stmt, LoxError> {
+        let expression = self.expression()?;
+        self.consume(TokenType::Semicolon, "Expected ';' after value".to_string())?;
+        Ok(Stmt::Expression(expression))
     }
 
     fn expression(&mut self) -> Result<Expr, LoxError> {
