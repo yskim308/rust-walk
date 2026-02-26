@@ -10,8 +10,6 @@ use rlox::{
 };
 
 fn main() {
-    println!("Hello, world!");
-    check_pretty_print();
     let args: Vec<String> = env::args().collect();
     let length = args.len();
     if length > 2 {
@@ -64,8 +62,8 @@ fn run(source: String) {
 
     // parse tokens into AST
     let mut parser = Parser::new(tokens);
-    let expression = match parser.parse() {
-        Ok(expr) => expr,
+    let statements = match parser.parse() {
+        Ok(stmts) => stmts,
         Err(_) => {
             todo!("handle synchronizations after statements");
             return;
@@ -74,24 +72,7 @@ fn run(source: String) {
 
     // interpret the AST
     let interpreter = Interpreter::new();
-    match interpreter.evaluate(expression) {
-        Ok(value) => println!("{value}"),
-        Err(e) => eprint!("{e}"),
-    };
+    interpreter.interpret(statements);
     todo!("finish")
     // 1. synchronizing in the parser to return a list of errors
-}
-
-fn check_pretty_print() {
-    let left_expr = Expr::unary(
-        Token::new(TokenType::Minus, "-".into(), None, 1),
-        123.into(),
-    );
-
-    let star = Token::new(TokenType::Star, "*".into(), None, 1);
-
-    let right_expr = Expr::grouping(45.67.into());
-
-    let bin_expr = Expr::binary(left_expr, star, right_expr);
-    println!("{bin_expr}");
 }
