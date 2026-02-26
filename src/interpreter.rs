@@ -1,3 +1,5 @@
+use std::fmt::format;
+
 use crate::{
     ast::expression::{Expr, LiteralValue},
     error::LoxError,
@@ -15,6 +17,11 @@ impl Interpreter {
             Expr::Literal { value } => Ok(self.literal_to_value(value)),
             Expr::Grouping { expression } => self.evaluate(*expression),
             Expr::Unary { token, expression } => self.evaluate_unary(token, *expression),
+            Expr::Binary {
+                left_expr,
+                operator,
+                right_expr,
+            } => self.evaluate_binary(*left_expr, operator, *right_expr),
             _ => todo!(),
         }
     }
@@ -41,6 +48,106 @@ impl Interpreter {
             }
             TokenType::Bang => Ok(Value::Boolean(!right_val.is_truthy())),
             _ => todo!("handle if operator not minus/bang"),
+        }
+    }
+
+    fn evaluate_binary(
+        &self,
+        left_expr: Expr,
+        operator: Token,
+        right_expr: Expr,
+    ) -> Result<Value, LoxError> {
+        let left_val = self.evaluate(left_expr)?;
+        let right_val = self.evaluate(right_expr)?;
+
+        match operator.token_type {
+            // ============ numeric comparison =============
+            TokenType::Greater => {
+                self.both_are_numeric(&left_val, &operator, &right_val)?;
+                Ok(Value::Boolean(left_val.as_number() > right_val.as_number()))
+            }
+            TokenType::GreaterEqual => {
+                self.both_are_numeric(&left_val, &operator, &right_val)?;
+                Ok(Value::Boolean(
+                    left_val.as_number() >= right_val.as_number(),
+                ))
+            }
+            TokenType::Less => {
+                self.both_are_numeric(&left_val, &operator, &right_val)?;
+                Ok(Value::Boolean(left_val.as_number() < right_val.as_number()))
+            }
+            TokenType::LessEqual => {
+                self.both_are_numeric(&left_val, &operator, &right_val)?;
+                Ok(Value::Boolean(
+                    left_val.as_number() <= right_val.as_number(),
+                ))
+            }
+
+            // ============ equality ================
+            TokenType::EqualEqual => Ok(Value::Boolean(left_val == right_val)),
+            TokenType::BangEqual => Ok(Value::Boolean(left_val != right_val)),
+
+            // ============ arithmetic ============
+            TokenType::Minus => {
+                self.both_are_numeric(&left_val, &operator, &right_val)?;
+                Ok(Value::Number(left_val.as_number() - right_val.as_number()))
+            }
+            TokenType::Slash => {
+                self.both_are_numeric(&left_val, &operator, &right_val)?;
+                Ok(Value::Number(left_val.as_number() / right_val.as_number()))
+            }
+            TokenType::Star => {
+                self.both_are_numeric(&left_val, &operator, &right_val)?;
+                Ok(Value::Number(left_val.as_number() * right_val.as_number()))
+            }
+
+            // =========== arithmeitc and string concact ============
+            TokenType::Plus => {
+                if let Ok(true) = self.both_are_numeric(&left_val, &operator, &right_val) {
+                    Ok(Value::Number(left_val.as_number() + right_val.as_number()))
+                } else {
+                    let s = self.concatenate_strings(left_val, &operator, right_val)?;
+                    Ok(Value::String(s))
+                }
+            }
+            _ => todo!(),
+        }
+    }
+
+    fn both_are_numeric(
+        &self,
+        left_val: &Value,
+        operator: &Token,
+        right_val: &Value,
+    ) -> Result<bool, LoxError> {
+        if left_val.is_numeric() && right_val.is_numeric() {
+            Ok(true)
+        } else {
+            let token_type = operator.token_type.clone();
+            Err(LoxError::runtime(
+                operator.clone(),
+                format!("'{}' operation attempted on non numeric types", token_type),
+            ))
+        }
+    }
+
+    fn concatenate_strings(
+        &self,
+        left_val: Value,
+        operator: &Token,
+        right_val: Value,
+    ) -> Result<String, LoxError> {
+        // if either is a string, concat
+        if left_val.is_stringy() || right_val.is_stringy() {
+            Ok(left_val.as_string() + &right_val.as_string())
+        } else {
+            Err(LoxError::runtime(
+                operator.clone(),
+                format!(
+                    "{} operation attempted on binary in which neither are of type String or Number",
+                    operator.token_type.clone())
+                )
+            )
         }
     }
 }
