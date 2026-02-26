@@ -26,7 +26,6 @@ impl Interpreter {
                 operator,
                 right_expr,
             } => self.evaluate_binary(*left_expr, operator, *right_expr),
-            _ => todo!(),
         }
     }
 
@@ -45,13 +44,19 @@ impl Interpreter {
         match operator.token_type {
             TokenType::Minus => {
                 if right_val.is_numeric() {
-                    Ok(Value::Number(right_val.as_number()))
+                    Ok(Value::Number(-right_val.as_number()))
                 } else {
-                    todo!("handle if cast fails")
+                    Err(LoxError::runtime(
+                        operator,
+                        "{-} operation attempted on non numeric type".to_string(),
+                    ))
                 }
             }
             TokenType::Bang => Ok(Value::Boolean(!right_val.is_truthy())),
-            _ => todo!("handle if operator not minus/bang"),
+            _ => panic!(
+                "evalute unary called when operator is neither Minus or Bang, 
+                \nOperator: {operator}",
+            ),
         }
     }
 
@@ -114,7 +119,7 @@ impl Interpreter {
                     Ok(Value::String(s))
                 }
             }
-            _ => todo!(),
+            _ => panic!("Evaluate Unary called on invalid operator: {operator}"),
         }
     }
 
