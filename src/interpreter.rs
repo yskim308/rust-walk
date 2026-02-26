@@ -12,7 +12,11 @@ pub mod values;
 pub struct Interpreter {}
 
 impl Interpreter {
-    fn evaluate(&self, expr: Expr) -> Result<Value, LoxError> {
+    pub fn new() -> Self {
+        Interpreter {}
+    }
+
+    pub fn evaluate(&self, expr: Expr) -> Result<Value, LoxError> {
         match expr {
             Expr::Literal { value } => Ok(self.literal_to_value(value)),
             Expr::Grouping { expression } => self.evaluate(*expression),

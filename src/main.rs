@@ -5,6 +5,7 @@ use std::{
 
 use rlox::{
     ast::{expression::Expr, parser::Parser},
+    interpreter::Interpreter,
     scanner::{token::Token, token_type::TokenType, Scanner},
 };
 
@@ -51,11 +52,34 @@ fn run_by_prompt() -> io::Result<()> {
 }
 
 fn run(source: String) {
+    // scan tokens
     let mut scanner = Scanner::new(source);
     let (tokens, errors) = scanner.scan_tokens();
+    if !errors.is_empty() {
+        for error in errors {
+            println!("{error}")
+        }
+        return;
+    }
+
+    // parse tokens into AST
     let mut parser = Parser::new(tokens);
-    let expression = parser.parse();
-    todo!("finish the rest?")
+    let expression = match parser.parse() {
+        Ok(expr) => expr,
+        Err(_) => {
+            todo!("handle synchronizations after statements");
+            return;
+        }
+    };
+
+    // interpret the AST
+    let interpreter = Interpreter::new();
+    match interpreter.evaluate(expression) {
+        Ok(value) => println!("{value}"),
+        Err(e) => eprint!("{e}"),
+    };
+    todo!("finish")
+    // 1. synchronizing in the parser to return a list of errors
 }
 
 fn check_pretty_print() {
