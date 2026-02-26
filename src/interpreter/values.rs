@@ -30,10 +30,23 @@ impl Value {
         matches!(self, Value::Number(_))
     }
 
+    pub fn is_stringy(&self) -> bool {
+        matches!(self, Value::String(_))
+    }
+
     pub fn as_number(&self) -> f64 {
         match *self {
             Value::Number(n) => n,
             _ => panic!("as number called on non number type: {:?}", self),
+        }
+    }
+
+    pub fn as_string(&self) -> String {
+        match self {
+            Value::Nil => "NIL".to_string(),
+            Value::Boolean(b) => b.to_string(),
+            Value::Number(n) => n.to_string(),
+            Value::String(s) => s.to_string(),
         }
     }
 }
