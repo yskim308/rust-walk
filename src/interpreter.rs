@@ -1,7 +1,7 @@
 use crate::{
     ast::expression::{Expr, LiteralValue},
     error::LoxError,
-    interpreter::values::Value,
+    interpreter::{stmt::Stmt, values::Value},
     scanner::{token::Token, token_type::TokenType},
 };
 
@@ -15,10 +15,32 @@ impl Interpreter {
         Interpreter {}
     }
 
-    pub fn evaluate(&self, expr: Expr) -> Result<Value, LoxError> {
+    pub fn interpret(&self, statements: Vec<Stmt>) {
+        for stmt in statements {
+            if let Err(e) = self.evaluate_statement(stmt) {
+                eprint!("{e}");
+            }
+        }
+    }
+
+    fn evaluate_statement(&self, stmt: Stmt) -> Result<(), LoxError> {
+        match stmt {
+            Stmt::Expression(expr) => {
+                self.evaluate_expression(expr)?;
+                Ok(())
+            }
+            Stmt::Print(expr) => {
+                let value = self.evaluate_expression(expr)?;
+                println!("{}", value.as_string());
+                Ok(())
+            }
+        }
+    }
+
+    fn evaluate_expression(&self, expr: Expr) -> Result<Value, LoxError> {
         match expr {
             Expr::Literal { value } => Ok(self.literal_to_value(value)),
-            Expr::Grouping { expression } => self.evaluate(*expression),
+            Expr::Grouping { expression } => self.evaluate_expression(*expression),
             Expr::Unary { token, expression } => self.evaluate_unary(token, *expression),
             Expr::Binary {
                 left_expr,
@@ -38,7 +60,7 @@ impl Interpreter {
     }
 
     fn evaluate_unary(&self, operator: Token, expression: Expr) -> Result<Value, LoxError> {
-        let right_val = self.evaluate(expression)?;
+        let right_val = self.evaluate_expression(expression)?;
 
         match operator.token_type {
             TokenType::Minus => {
@@ -65,8 +87,8 @@ impl Interpreter {
         operator: Token,
         right_expr: Expr,
     ) -> Result<Value, LoxError> {
-        let left_val = self.evaluate(left_expr)?;
-        let right_val = self.evaluate(right_expr)?;
+        let left_val = self.evaluate_expression(left_expr)?;
+        let right_val = self.evaluate_expression(right_expr)?;
 
         match operator.token_type {
             // ============ numeric comparison =============
