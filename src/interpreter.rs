@@ -1,5 +1,3 @@
-use std::fmt::format;
-
 use crate::{
     ast::expression::{Expr, LiteralValue},
     error::LoxError,
