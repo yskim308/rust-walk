@@ -5,8 +5,9 @@ use crate::{
     scanner::{token::Token, token_type::TokenType},
 };
 
+mod environment;
 pub mod stmt;
-pub mod values;
+mod values;
 
 pub struct Interpreter {}
 
