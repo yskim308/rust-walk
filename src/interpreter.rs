@@ -1,7 +1,7 @@
 use crate::{
     ast::expression::{Expr, LiteralValue},
     error::LoxError,
-    interpreter::{stmt::Stmt, values::Value},
+    interpreter::{environment::Environment, stmt::Stmt, values::Value},
     scanner::{token::Token, token_type::TokenType},
 };
 
@@ -9,11 +9,15 @@ mod environment;
 pub mod stmt;
 mod values;
 
-pub struct Interpreter {}
+pub struct Interpreter {
+    environment: Environment,
+}
 
 impl Interpreter {
     pub fn new() -> Self {
-        Interpreter {}
+        Interpreter {
+            environment: Environment::new(),
+        }
     }
 
     pub fn interpret(&self, statements: Vec<Stmt>) {
@@ -182,5 +186,11 @@ impl Interpreter {
                 )
             )
         }
+    }
+}
+
+impl Default for Interpreter {
+    fn default() -> Self {
+        Self::new()
     }
 }
