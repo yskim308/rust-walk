@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::interpreter::values::Value;
+use crate::{error::LoxError, interpreter::values::Value, scanner::token::Token};
 
 pub struct Environment {
     values: HashMap<String, Value>,
@@ -17,10 +17,13 @@ impl Environment {
         self.values.insert(name, value);
     }
 
-    pub fn get(&self, name: &String) -> Result<Value, String> {
-        match self.values.get(name) {
+    pub fn get(&self, name: &Token) -> Result<Value, LoxError> {
+        match self.values.get(&name.lexeme) {
             Some(value) => Ok(value.clone()),
-            None => Err(format!("Undefined variable {}", name)),
+            None => Err(LoxError::new(
+                name.line,
+                format!("Undefined Variable {}", name.lexeme),
+            )),
         }
     }
 }

@@ -20,7 +20,7 @@ impl Interpreter {
         }
     }
 
-    pub fn interpret(&self, statements: Vec<Stmt>) {
+    pub fn interpret(&mut self, statements: Vec<Stmt>) {
         for stmt in statements {
             if let Err(e) = self.evaluate_statement(stmt) {
                 eprint!("{e}");
@@ -28,7 +28,7 @@ impl Interpreter {
         }
     }
 
-    fn evaluate_statement(&self, stmt: Stmt) -> Result<(), LoxError> {
+    fn evaluate_statement(&mut self, stmt: Stmt) -> Result<(), LoxError> {
         match stmt {
             Stmt::Expression(expr) => {
                 self.evaluate_expression(expr)?;
@@ -39,7 +39,17 @@ impl Interpreter {
                 println!("{}", value.as_string());
                 Ok(())
             }
-            Stmt::Var(_, _) => todo!(),
+            Stmt::Var(token, initializer) => match initializer {
+                Some(expr) => {
+                    let value = self.evaluate_expression(expr)?;
+                    self.environment.define(token.lexeme, value);
+                    Ok(())
+                }
+                None => {
+                    self.environment.define(token.lexeme, Value::Nil);
+                    Ok(())
+                }
+            },
         }
     }
 
@@ -53,7 +63,7 @@ impl Interpreter {
                 operator,
                 right_expr,
             } => self.evaluate_binary(*left_expr, operator, *right_expr),
-            Expr::Variable { token } => todo!(),
+            Expr::Variable { token } => self.environment.get(&token),
         }
     }
 
