@@ -121,17 +121,18 @@ impl Scanner {
             }
             b'\n' => self.cursor.line += 1,
 
-            // =============== LITERALS AND IDENTIFIERS ==================
+            // =============== LITERAL, IDENTIFIERS, AND WHITESPACE ==================
             b'"' => self.handle_string(),
             c => {
-                if c.is_ascii_digit() {
+                if c.is_ascii_whitespace() {
+                } else if c.is_ascii_digit() {
                     self.handle_number();
                 } else if c.is_ascii_alphanumeric() {
                     self.handle_identifier();
                 } else {
                     self.errors.push(LoxError::new(
                         self.cursor.line,
-                        format!("unexpected token: {}", c),
+                        format!("unexpected token: '{}'", c as char),
                     ));
                 }
             }
