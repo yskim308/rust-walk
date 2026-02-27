@@ -3,11 +3,7 @@ use std::{
     fs, io,
 };
 
-use rlox::{
-    ast::{expression::Expr, parser::Parser},
-    interpreter::Interpreter,
-    scanner::{token::Token, token_type::TokenType, Scanner},
-};
+use rlox::{ast::parser::Parser, interpreter::Interpreter, scanner::Scanner};
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -64,7 +60,8 @@ fn run(source: String) {
     let mut parser = Parser::new(tokens);
     let statements = match parser.parse() {
         Ok(stmts) => stmts,
-        Err(_) => {
+        Err(e) => {
+            print!("{e}");
             todo!("handle synchronizations after statements");
             return;
         }

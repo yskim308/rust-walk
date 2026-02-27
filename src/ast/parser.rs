@@ -28,7 +28,10 @@ impl Parser {
 
     fn statement(&mut self) -> Result<Stmt, LoxError> {
         match self.peek().token_type {
-            TokenType::Print => self.print_statement(),
+            TokenType::Print => {
+                self.advance();
+                self.print_statement()
+            }
             _ => self.expression_statement(),
         }
     }
@@ -141,10 +144,10 @@ impl Parser {
                 )?;
                 Expr::grouping(expr)
             }
-            _ => {
+            t => {
                 return Err(LoxError::new(
                     token.line,
-                    "expected some expression".to_string(),
+                    format!("unexpected token in primary expression: {t}"),
                 ))
             }
         })
