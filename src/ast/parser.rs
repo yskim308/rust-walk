@@ -42,7 +42,23 @@ impl Parser {
     }
 
     fn var_declaration(&mut self) -> Result<Stmt, LoxError> {
-        todo!()
+        self.advance();
+
+        let name = self.consume(TokenType::Identifier, "Expected variable name".to_string())?;
+
+        let mut initializer: Option<Expr> = None;
+
+        if self.peek().token_type == TokenType::Equal {
+            self.advance();
+            initializer = Some(self.expression()?);
+        }
+
+        self.consume(
+            TokenType::Semicolon,
+            "Expect ; after varialbe initialization".to_string(),
+        )?;
+
+        Ok(Stmt::Var(name, initializer))
     }
 
     fn statement(&mut self) -> Result<Stmt, LoxError> {
@@ -173,10 +189,9 @@ impl Parser {
         })
     }
 
-    fn consume(&mut self, token_type: TokenType, msg: String) -> Result<(), LoxError> {
+    fn consume(&mut self, token_type: TokenType, msg: String) -> Result<Token, LoxError> {
         if self.check_current_type(token_type) {
-            self.advance();
-            return Ok(());
+            return Ok(self.advance());
         }
         Err(LoxError::new(self.peek().line, msg))
     }
