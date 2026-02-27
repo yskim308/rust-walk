@@ -34,6 +34,7 @@ impl Interpreter {
                 println!("{}", value.as_string());
                 Ok(())
             }
+            Stmt::Var(_, _) => todo!(),
         }
     }
 
@@ -47,6 +48,7 @@ impl Interpreter {
                 operator,
                 right_expr,
             } => self.evaluate_binary(*left_expr, operator, *right_expr),
+            Expr::Variable { token } => todo!(),
         }
     }
 

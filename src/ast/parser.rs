@@ -18,12 +18,31 @@ impl Parser {
         Parser { tokens, current: 0 }
     }
 
-    pub fn parse(&mut self) -> Result<Vec<Stmt>, LoxError> {
+    pub fn parse(&mut self) -> (Vec<Stmt>, Vec<LoxError>) {
         let mut statements: Vec<Stmt> = Vec::new();
+        let mut errors: Vec<LoxError> = Vec::new();
         while !self.is_at_end() {
-            statements.push(self.statement()?);
+            match self.declaration() {
+                Ok(stmt) => statements.push(stmt),
+                Err(e) => {
+                    errors.push(e);
+                    self.synchronize();
+                }
+            }
         }
-        Ok(statements)
+
+        (statements, errors)
+    }
+
+    fn declaration(&mut self) -> Result<Stmt, LoxError> {
+        match self.peek().token_type {
+            TokenType::Var => self.var_declaration(),
+            _ => self.statement(),
+        }
+    }
+
+    fn var_declaration(&mut self) -> Result<Stmt, LoxError> {
+        todo!()
     }
 
     fn statement(&mut self) -> Result<Stmt, LoxError> {
@@ -144,6 +163,7 @@ impl Parser {
                 )?;
                 Expr::grouping(expr)
             }
+            TokenType::Identifier => Expr::variable(token),
             t => {
                 return Err(LoxError::new(
                     token.line,

@@ -18,6 +18,9 @@ pub enum Expr {
         operator: Token,
         right_expr: Box<Expr>,
     },
+    Variable {
+        token: Token,
+    },
 }
 
 #[derive(Debug)]
@@ -52,6 +55,10 @@ impl Expr {
             operator,
             right_expr: Box::new(right_expr),
         }
+    }
+
+    pub fn variable(token: Token) -> Self {
+        Expr::Variable { token }
     }
 }
 
@@ -97,6 +104,7 @@ impl fmt::Display for Expr {
             } => {
                 write!(f, "({left_expr} {} {right_expr})", operator.lexeme)
             }
+            Expr::Variable { token } => write!(f, "{token}"),
         }
     }
 }
