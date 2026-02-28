@@ -21,6 +21,10 @@ pub enum Expr {
     Variable {
         token: Token,
     },
+    Assignment {
+        name: Token,
+        value: Box<Expr>,
+    },
 }
 
 #[derive(Debug)]
@@ -59,6 +63,13 @@ impl Expr {
 
     pub fn variable(token: Token) -> Self {
         Expr::Variable { token }
+    }
+
+    pub fn assignment(name: Token, value: Expr) -> Self {
+        Expr::Assignment {
+            name,
+            value: Box::new(value),
+        }
     }
 }
 

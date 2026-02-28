@@ -84,7 +84,30 @@ impl Parser {
     }
 
     fn expression(&mut self) -> Result<Expr, LoxError> {
-        self.equality()
+        self.assignment()
+    }
+
+    fn assignment(&mut self) -> Result<Expr, LoxError> {
+        let expr = self.equality()?;
+
+        if self.peek().token_type != TokenType::Equal {
+            let token = self.peek().clone();
+            self.advance();
+
+            let value = self.assignment()?;
+
+            match expr {
+                Expr::Variable { token } => return Ok(Expr::assignment(token, value)),
+                _ => {
+                    return Err(LoxError::new(
+                        token.line,
+                        "Invalid assignment target".to_string(),
+                    ))
+                }
+            }
+        }
+
+        Ok(expr)
     }
 
     fn equality(&mut self) -> Result<Expr, LoxError> {
