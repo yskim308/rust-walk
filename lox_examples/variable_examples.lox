@@ -1,3 +1,8 @@
 var a = 1;
 var b = 2;
 print a + b;
+
+// checking to see if assignment expression are evaluated
+var c = 2;
+print c;
+print c = 5;
