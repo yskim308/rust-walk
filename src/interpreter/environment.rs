@@ -26,4 +26,16 @@ impl Environment {
             )),
         }
     }
+
+    pub fn assign(&mut self, left: Token, right: &Value) -> Result<(), LoxError> {
+        if let Some(key) = self.values.get_mut(&left.lexeme) {
+            *key = right.clone();
+            Ok(())
+        } else {
+            Err(LoxError::runtime(
+                left,
+                "invalid assignment target".to_string(),
+            ))
+        }
+    }
 }

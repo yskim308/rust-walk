@@ -53,7 +53,7 @@ impl Interpreter {
         }
     }
 
-    fn evaluate_expression(&self, expr: Expr) -> Result<Value, LoxError> {
+    fn evaluate_expression(&mut self, expr: Expr) -> Result<Value, LoxError> {
         match expr {
             Expr::Literal { value } => Ok(self.literal_to_value(value)),
             Expr::Grouping { expression } => self.evaluate_expression(*expression),
@@ -64,6 +64,11 @@ impl Interpreter {
                 right_expr,
             } => self.evaluate_binary(*left_expr, operator, *right_expr),
             Expr::Variable { token } => self.environment.get(&token),
+            Expr::Assignment { name, value } => {
+                let right_value = self.evaluate_expression(*value)?;
+                self.environment.assign(name, &right_value)?;
+                Ok(right_value)
+            }
         }
     }
 
@@ -76,7 +81,7 @@ impl Interpreter {
         }
     }
 
-    fn evaluate_unary(&self, operator: Token, expression: Expr) -> Result<Value, LoxError> {
+    fn evaluate_unary(&mut self, operator: Token, expression: Expr) -> Result<Value, LoxError> {
         let right_val = self.evaluate_expression(expression)?;
 
         match operator.token_type {
@@ -99,7 +104,7 @@ impl Interpreter {
     }
 
     fn evaluate_binary(
-        &self,
+        &mut self,
         left_expr: Expr,
         operator: Token,
         right_expr: Expr,

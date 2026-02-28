@@ -116,6 +116,7 @@ impl fmt::Display for Expr {
                 write!(f, "({left_expr} {} {right_expr})", operator.lexeme)
             }
             Expr::Variable { token } => write!(f, "{token}"),
+            Expr::Assignment { name, value } => write!(f, "{} = {value}", name.lexeme),
         }
     }
 }
