@@ -90,7 +90,7 @@ impl Parser {
     fn assignment(&mut self) -> Result<Expr, LoxError> {
         let expr = self.equality()?;
 
-        if self.peek().token_type != TokenType::Equal {
+        if self.peek().token_type == TokenType::Equal {
             let token = self.peek().clone();
             self.advance();
 
