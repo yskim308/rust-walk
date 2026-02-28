@@ -58,18 +58,16 @@ fn run(source: String) {
 
     // parse tokens into AST
     let mut parser = Parser::new(tokens);
-    let statements = match parser.parse() {
-        Ok(stmts) => stmts,
-        Err(e) => {
-            print!("{e}");
-            todo!("handle synchronizations after statements");
-            return;
+    let (statements, parse_errors) = parser.parse();
+    if !parse_errors.is_empty() {
+        for error in parse_errors {
+            println!("{error}");
         }
-    };
+        return;
+    }
 
     // interpret the AST
-    let interpreter = Interpreter::new();
+    let mut interpreter = Interpreter::new();
     interpreter.interpret(statements);
-    todo!("finish")
     // 1. synchronizing in the parser to return a list of errors
 }
