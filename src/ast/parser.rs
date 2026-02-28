@@ -223,17 +223,20 @@ impl Parser {
         self.advance();
 
         while !self.is_at_end() {
-            match self.peek().token_type {
-                TokenType::Class => todo!(),
-                TokenType::Fun => todo!(),
-                TokenType::Var => todo!(),
-                TokenType::For => todo!(),
-                TokenType::If => todo!(),
-                TokenType::While => todo!(),
-                TokenType::Print => todo!(),
-                TokenType::Return => todo!(),
-                _ => todo!(),
+            if self.previous().token_type == TokenType::Semicolon {
+                return;
             }
+            // match self.peek().token_type {
+            //     TokenType::Class => todo!(),
+            //     TokenType::Fun => todo!(),
+            //     TokenType::Var => todo!(),
+            //     TokenType::For => todo!(),
+            //     TokenType::If => todo!(),
+            //     TokenType::While => todo!(),
+            //     TokenType::Print => todo!(),
+            //     TokenType::Return => todo!(),
+            //     _ => todo!(),
+            // }
             self.advance();
         }
     }
