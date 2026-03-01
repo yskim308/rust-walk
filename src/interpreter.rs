@@ -25,7 +25,8 @@ impl Interpreter {
     pub fn interpret(&mut self, statements: Vec<Stmt>) {
         for stmt in statements {
             if let Err(e) = self.evaluate_statement(stmt) {
-                eprint!("{e}");
+                eprintln!("{e}");
+                return;
             }
         }
     }

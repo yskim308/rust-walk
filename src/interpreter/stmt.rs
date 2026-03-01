@@ -1,5 +1,6 @@
 use crate::{ast::expression::Expr, scanner::token::Token};
 
+#[derive(Debug)]
 pub enum Stmt {
     Block(Vec<Stmt>),
     Expression(Expr),

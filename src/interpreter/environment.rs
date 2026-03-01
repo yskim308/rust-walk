@@ -28,7 +28,7 @@ impl Environment {
             Some(value) => Ok(value.clone()),
             None => Err(LoxError::new(
                 name.line,
-                format!("Undefined Variable {}", name.lexeme),
+                format!("Undefined Variable '{}'", name.lexeme),
             )),
         }
     }
