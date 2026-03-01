@@ -1,9 +1,11 @@
+use std::rc::Rc;
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Value {
     Nil,
     Boolean(bool),
     Number(f64),
-    String(String),
+    String(Rc<String>),
 }
 
 impl std::fmt::Display for Value {

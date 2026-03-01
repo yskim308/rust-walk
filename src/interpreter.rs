@@ -1,4 +1,4 @@
-use std::mem;
+use std::{mem, rc::Rc};
 
 use crate::{
     ast::expression::{Expr, LiteralValue},
@@ -98,7 +98,7 @@ impl Interpreter {
             LiteralValue::Nil => Value::Nil,
             LiteralValue::Number(n) => Value::Number(n),
             LiteralValue::Boolean(b) => Value::Boolean(b),
-            LiteralValue::String(s) => Value::String(s),
+            LiteralValue::String(s) => Value::String(Rc::new(s)),
         }
     }
 
@@ -180,7 +180,7 @@ impl Interpreter {
                     Ok(Value::Number(left_val.as_number() + right_val.as_number()))
                 } else {
                     let s = self.concatenate_strings(left_val, &operator, right_val)?;
-                    Ok(Value::String(s))
+                    Ok(Value::String(Rc::new(s)))
                 }
             }
             _ => panic!("Evaluate Unary called on invalid operator: {operator}"),
