@@ -1,3 +1,5 @@
+use std::mem;
+
 use crate::{
     ast::expression::{Expr, LiteralValue},
     error::LoxError,
@@ -50,7 +52,26 @@ impl Interpreter {
                     Ok(())
                 }
             },
+            Stmt::Block(statements) => self.execute_block(statements, Environment::new()),
         }
+    }
+
+    fn execute_block(
+        &mut self,
+        statements: Vec<Stmt>,
+        block_env: Environment,
+    ) -> Result<(), LoxError> {
+        let root_env = mem::replace(&mut self.environment, block_env);
+
+        for stmt in statements {
+            if let Err(e) = self.evaluate_statement(stmt) {
+                self.environment = root_env;
+                return Err(e);
+            }
+        }
+
+        self.environment = root_env;
+        Ok(())
     }
 
     fn evaluate_expression(&mut self, expr: Expr) -> Result<Value, LoxError> {
