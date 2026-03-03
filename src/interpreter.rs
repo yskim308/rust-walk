@@ -18,7 +18,7 @@ pub struct Interpreter {
 impl Interpreter {
     pub fn new() -> Self {
         Interpreter {
-            environment: Environment::new(),
+            environment: Environment::default(),
         }
     }
 
@@ -53,7 +53,9 @@ impl Interpreter {
                     Ok(())
                 }
             },
-            Stmt::Block(statements) => self.execute_block(statements, Environment::new()),
+            Stmt::Block(statements) => {
+                self.execute_block(statements, Environment::new(self.environment.clone()))
+            }
         }
     }
 

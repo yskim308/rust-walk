@@ -2,15 +2,16 @@ use std::collections::HashMap;
 
 use crate::{error::LoxError, interpreter::values::Value, scanner::token::Token};
 
+#[derive(Clone, Default)]
 pub struct Environment {
     environment: Option<Box<Environment>>,
     values: HashMap<String, Value>,
 }
 
 impl Environment {
-    pub fn new() -> Self {
+    pub fn new(environment: Environment) -> Self {
         Environment {
-            environment: None,
+            environment: Some(Box::new(environment)),
             values: HashMap::new(),
         }
     }
@@ -20,12 +21,12 @@ impl Environment {
     }
 
     pub fn get(&self, name: &Token) -> Result<Value, LoxError> {
-        if let Some(env) = &self.environment {
-            return env.get(name);
+        if let Some(value) = self.values.get(&name.lexeme) {
+            return Ok(value.clone());
         }
 
-        match self.values.get(&name.lexeme) {
-            Some(value) => Ok(value.clone()),
+        match &self.environment {
+            Some(env) => env.get(name),
             None => Err(LoxError::new(
                 name.line,
                 format!("Undefined Variable '{}'", name.lexeme),
