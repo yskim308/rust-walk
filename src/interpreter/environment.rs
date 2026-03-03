@@ -22,7 +22,18 @@ impl Environment {
 
     pub fn get(&self, name: &Token) -> Result<Value, LoxError> {
         if let Some(value) = self.values.get(&name.lexeme) {
-            return Ok(value.clone());
+            match value {
+                Value::Nil => {
+                    return Err(LoxError::runtime(
+                        name.clone(),
+                        format!(
+                            "Attempted to evaluate unitialized variable '{}'",
+                            name.lexeme
+                        ),
+                    ))
+                }
+                val => return Ok(val.clone()),
+            }
         }
 
         match &self.environment {
