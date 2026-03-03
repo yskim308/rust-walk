@@ -6,3 +6,14 @@ print a + b;
 var c = 2;
 print c;
 print c = 5;
+
+// check to see if invalid assignments are caught
+
+// No initializers.
+var a;
+var b;
+
+a = "assigned";
+print a; // OK, was assigned first.
+
+print b; // Error!
