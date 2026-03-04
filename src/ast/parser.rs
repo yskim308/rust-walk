@@ -1,7 +1,7 @@
 use crate::{
     ast::expression::{Expr, LiteralValue},
     error::LoxError,
-    interpreter::stmt::Stmt,
+    interpreter::stmt::{IfConditions, Stmt},
     scanner::{
         token::{Literal, Token},
         token_type::TokenType,
@@ -63,6 +63,10 @@ impl Parser {
 
     fn statement(&mut self) -> Result<Stmt, LoxError> {
         match self.peek().token_type {
+            TokenType::If => {
+                self.advance();
+                self.if_statement()
+            }
             TokenType::Print => {
                 self.advance();
                 self.print_statement()
@@ -73,6 +77,28 @@ impl Parser {
             }
             _ => self.expression_statement(),
         }
+    }
+
+    fn if_statement(&mut self) -> Result<Stmt, LoxError> {
+        self.consume(TokenType::LeftParen, "Expected '(' after 'if'.".to_string());
+        let condition = self.expression()?;
+        self.consume(
+            TokenType::RightParen,
+            "Expected ')' after if condition".to_string(),
+        );
+
+        let then_branch = self.statement()?;
+
+        let else_branch = match self.peek().token_type {
+            TokenType::Else => Some(self.statement()?),
+            _ => None,
+        };
+
+        Ok(Stmt::If(IfConditions::new(
+            condition,
+            then_branch,
+            else_branch,
+        )))
     }
 
     fn block(&mut self) -> Result<Stmt, LoxError> {

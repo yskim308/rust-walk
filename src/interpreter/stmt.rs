@@ -13,15 +13,15 @@ pub enum Stmt {
 pub struct IfConditions {
     pub condition: Expr,
     pub then_branch: Box<Stmt>,
-    pub else_branch: Box<Stmt>,
+    pub else_branch: Option<Box<Stmt>>,
 }
 
 impl IfConditions {
-    pub fn new(condition: Expr, then_branch: Stmt, else_branch: Stmt) -> Self {
+    pub fn new(condition: Expr, then_branch: Stmt, else_branch: Option<Stmt>) -> Self {
         IfConditions {
             condition,
             then_branch: Box::new(then_branch),
-            else_branch: Box::new(else_branch),
+            else_branch: else_branch.map(Box::new),
         }
     }
 }
