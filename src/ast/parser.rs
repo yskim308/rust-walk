@@ -79,7 +79,66 @@ impl Parser {
                 self.advance();
                 self.block()
             }
+            TokenType::For => {
+                self.advance();
+                self.for_statement()
+            }
             _ => self.expression_statement(),
+        }
+    }
+
+    fn for_statement(&mut self) -> Result<Stmt, LoxError> {
+        self.consume(
+            TokenType::LeftParen,
+            "Expected '(' after 'for'.".to_string(),
+        )?;
+
+        let initalizer = if self.peek().token_type == TokenType::Semicolon {
+            self.advance();
+            None
+        } else {
+            Some(self.declaration()?)
+        };
+
+        let condition = if self.peek().token_type == TokenType::Semicolon {
+            None
+        } else {
+            Some(self.expression()?)
+        };
+        self.consume(
+            TokenType::Semicolon,
+            "Expected ';' after loop condition.".into(),
+        )?;
+
+        let increment = if self.peek().token_type == TokenType::RightParen {
+            None
+        } else {
+            Some(self.expression()?)
+        };
+        self.consume(
+            TokenType::RightParen,
+            "Expected ')' after for clauses".into(),
+        )?;
+
+        let body = self.statement()?;
+
+        let body = if let Some(inc) = increment {
+            Stmt::Block(vec![body, Stmt::Expression(inc)])
+        } else {
+            body
+        };
+
+        let condition = if let Some(cond) = condition {
+            cond
+        } else {
+            Expr::literal(LiteralValue::Boolean(true))
+        };
+
+        let body = Stmt::While(WhileConditions::new(condition, body));
+
+        match initalizer {
+            Some(init) => Ok(Stmt::Block(vec![init, body])),
+            None => Ok(body),
         }
     }
 
