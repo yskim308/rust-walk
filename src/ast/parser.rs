@@ -1,7 +1,7 @@
 use crate::{
     ast::expression::{Expr, LiteralValue},
     error::LoxError,
-    interpreter::stmt::{IfConditions, Stmt},
+    interpreter::stmt::{IfConditions, Stmt, WhileConditions},
     scanner::{
         token::{Literal, Token},
         token_type::TokenType,
@@ -71,12 +71,32 @@ impl Parser {
                 self.advance();
                 self.print_statement()
             }
+            TokenType::While => {
+                self.advance();
+                self.while_statement()
+            }
             TokenType::LeftBrace => {
                 self.advance();
                 self.block()
             }
             _ => self.expression_statement(),
         }
+    }
+
+    fn while_statement(&mut self) -> Result<Stmt, LoxError> {
+        self.consume(
+            TokenType::LeftParen,
+            "Expected '(' after 'while'".to_string(),
+        );
+        let condition = self.expression()?;
+        self.consume(
+            TokenType::RightParen,
+            "Expected ')' after while condition".to_string(),
+        );
+
+        let body = self.statement()?;
+
+        Ok(Stmt::While(WhileConditions::new(condition, body)))
     }
 
     fn if_statement(&mut self) -> Result<Stmt, LoxError> {

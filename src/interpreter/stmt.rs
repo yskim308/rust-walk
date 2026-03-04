@@ -7,7 +7,22 @@ pub enum Stmt {
     If(IfConditions),
     Print(Expr),
     Var(Token, Option<Expr>), // variables can be delcared unitialized
-    While(Expr, Box<Stmt>),
+    While(WhileConditions),
+}
+
+#[derive(Debug)]
+pub struct WhileConditions {
+    pub condition: Expr,
+    pub stmt_body: Box<Stmt>,
+}
+
+impl WhileConditions {
+    pub fn new(condition: Expr, stmt_body: Stmt) -> Self {
+        WhileConditions {
+            condition,
+            stmt_body: Box::new(stmt_body),
+        }
+    }
 }
 
 #[derive(Debug)]
