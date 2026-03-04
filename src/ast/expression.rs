@@ -134,7 +134,7 @@ impl fmt::Display for Expr {
                 left,
                 operator,
                 right,
-            } => todo!(),
+            } => write!(f, "{left} {} {right}", operator.lexeme),
         }
     }
 }

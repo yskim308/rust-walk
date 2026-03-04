@@ -60,7 +60,7 @@ impl Interpreter {
                 if self.evaluate_expression(&conditions.condition)?.is_truthy() {
                     self.evaluate_statement(&conditions.then_branch)?;
                 } else if let Some(else_branch) = &conditions.else_branch {
-                    self.evaluate_statement(&else_branch)?;
+                    self.evaluate_statement(else_branch)?;
                 }
                 Ok(())
             }
@@ -96,7 +96,7 @@ impl Interpreter {
                 operator,
                 right_expr,
             } => self.evaluate_binary(left_expr, operator, right_expr),
-            Expr::Variable { token } => self.environment.get(&token),
+            Expr::Variable { token } => self.environment.get(token),
             Expr::Assignment { name, value } => {
                 let right_value = self.evaluate_expression(value)?;
                 self.environment.assign(name, &right_value)?;
@@ -106,15 +106,34 @@ impl Interpreter {
                 left,
                 operator,
                 right,
-            } => todo!(),
+            } => self.evaluate_logical(left, operator, right),
         }
+    }
+
+    fn evaluate_logical(
+        &mut self,
+        left_expr: &Expr,
+        operator: &Token,
+        right_expr: &Expr,
+    ) -> Result<Value, LoxError> {
+        let left = self.evaluate_expression(left_expr)?;
+
+        if operator.token_type == TokenType::Or {
+            if left.is_truthy() {
+                return Ok(left);
+            }
+        } else if !left.is_truthy() {
+            return Ok(left);
+        }
+
+        self.evaluate_expression(right_expr)
     }
 
     fn literal_to_value(&self, literal: &LiteralValue) -> Value {
         match literal {
             LiteralValue::Nil => Value::Nil,
-            LiteralValue::Number(n) => Value::Number(n.clone()),
-            LiteralValue::Boolean(b) => Value::Boolean(b.clone()),
+            LiteralValue::Number(n) => Value::Number(*n),
+            LiteralValue::Boolean(b) => Value::Boolean(*b),
             LiteralValue::String(s) => Value::String(Rc::new(s.clone())),
         }
     }
@@ -153,21 +172,21 @@ impl Interpreter {
         match operator.token_type {
             // ============ numeric comparison =============
             TokenType::Greater => {
-                self.both_are_numeric(&left_val, &operator, &right_val)?;
+                self.both_are_numeric(&left_val, operator, &right_val)?;
                 Ok(Value::Boolean(left_val.as_number() > right_val.as_number()))
             }
             TokenType::GreaterEqual => {
-                self.both_are_numeric(&left_val, &operator, &right_val)?;
+                self.both_are_numeric(&left_val, operator, &right_val)?;
                 Ok(Value::Boolean(
                     left_val.as_number() >= right_val.as_number(),
                 ))
             }
             TokenType::Less => {
-                self.both_are_numeric(&left_val, &operator, &right_val)?;
+                self.both_are_numeric(&left_val, operator, &right_val)?;
                 Ok(Value::Boolean(left_val.as_number() < right_val.as_number()))
             }
             TokenType::LessEqual => {
-                self.both_are_numeric(&left_val, &operator, &right_val)?;
+                self.both_are_numeric(&left_val, operator, &right_val)?;
                 Ok(Value::Boolean(
                     left_val.as_number() <= right_val.as_number(),
                 ))
@@ -179,24 +198,24 @@ impl Interpreter {
 
             // ============ arithmetic ============
             TokenType::Minus => {
-                self.both_are_numeric(&left_val, &operator, &right_val)?;
+                self.both_are_numeric(&left_val, operator, &right_val)?;
                 Ok(Value::Number(left_val.as_number() - right_val.as_number()))
             }
             TokenType::Slash => {
-                self.both_are_numeric(&left_val, &operator, &right_val)?;
+                self.both_are_numeric(&left_val, operator, &right_val)?;
                 Ok(Value::Number(left_val.as_number() / right_val.as_number()))
             }
             TokenType::Star => {
-                self.both_are_numeric(&left_val, &operator, &right_val)?;
+                self.both_are_numeric(&left_val, operator, &right_val)?;
                 Ok(Value::Number(left_val.as_number() * right_val.as_number()))
             }
 
             // =========== arithmeitc and string concact ============
             TokenType::Plus => {
-                if let Ok(true) = self.both_are_numeric(&left_val, &operator, &right_val) {
+                if let Ok(true) = self.both_are_numeric(&left_val, operator, &right_val) {
                     Ok(Value::Number(left_val.as_number() + right_val.as_number()))
                 } else {
-                    let s = self.concatenate_strings(left_val, &operator, right_val)?;
+                    let s = self.concatenate_strings(left_val, operator, right_val)?;
                     Ok(Value::String(Rc::new(s)))
                 }
             }
