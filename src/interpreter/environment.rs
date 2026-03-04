@@ -20,6 +20,10 @@ impl Environment {
         self.values.insert(name, value);
     }
 
+    pub fn into_enclosing(self) -> Option<Environment> {
+        self.environment.map(|env| *env)
+    }
+
     pub fn get(&self, name: &Token) -> Result<Value, LoxError> {
         if let Some(value) = self.values.get(&name.lexeme) {
             match value {
@@ -46,13 +50,11 @@ impl Environment {
     }
 
     pub fn assign(&mut self, left: &Token, right: &Value) -> Result<(), LoxError> {
-        if let Some(env) = &mut self.environment {
-            return env.assign(left, right);
-        }
-
         if let Some(key) = self.values.get_mut(&left.lexeme) {
             *key = right.clone();
             Ok(())
+        } else if let Some(env) = &mut self.environment {
+            env.assign(left, right)
         } else {
             let err_msg = format!("invalid assignment target: {left}");
             Err(LoxError::runtime(left.clone(), err_msg))

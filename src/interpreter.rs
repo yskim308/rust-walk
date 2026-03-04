@@ -54,7 +54,7 @@ impl Interpreter {
                 }
             },
             Stmt::Block(statements) => {
-                self.execute_block(statements, Environment::new(self.environment.clone()))
+                self.execute_block(statements)
             }
             Stmt::If(conditions) => {
                 if self.evaluate_expression(&conditions.condition)?.is_truthy() {
@@ -73,22 +73,21 @@ impl Interpreter {
         }
     }
 
-    fn execute_block(
-        &mut self,
-        statements: &[Stmt],
-        block_env: Environment,
-    ) -> Result<(), LoxError> {
-        let root_env = mem::replace(&mut self.environment, block_env);
+    fn execute_block(&mut self, statements: &[Stmt]) -> Result<(), LoxError> {
+        let enclosing = mem::take(&mut self.environment);
+        self.environment = Environment::new(enclosing);
 
+        let mut result = Ok(());
         for stmt in statements {
             if let Err(e) = self.evaluate_statement(stmt) {
-                self.environment = root_env;
-                return Err(e);
+                result = Err(e);
+                break;
             }
         }
 
-        self.environment = root_env;
-        Ok(())
+        let block_env = mem::take(&mut self.environment);
+        self.environment = block_env.into_enclosing().unwrap_or_default();
+        result
     }
 
     fn evaluate_expression(&mut self, expr: &Expr) -> Result<Value, LoxError> {
