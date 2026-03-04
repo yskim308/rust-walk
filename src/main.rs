@@ -68,6 +68,6 @@ fn run(source: String) {
 
     // interpret the AST
     let mut interpreter = Interpreter::new();
-    interpreter.interpret(statements);
+    interpreter.interpret(&statements);
     // 1. synchronizing in the parser to return a list of errors
 }

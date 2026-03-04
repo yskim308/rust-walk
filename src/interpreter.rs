@@ -64,7 +64,12 @@ impl Interpreter {
                 }
                 Ok(())
             }
-            Stmt::While(_) => todo!(),
+            Stmt::While(conditions) => {
+                while self.evaluate_expression(&conditions.condition)?.is_truthy() {
+                    self.evaluate_statement(&conditions.stmt_body)?;
+                }
+                Ok(())
+            }
         }
     }
 
