@@ -87,12 +87,12 @@ impl Parser {
         self.consume(
             TokenType::LeftParen,
             "Expected '(' after 'while'".to_string(),
-        );
+        )?;
         let condition = self.expression()?;
         self.consume(
             TokenType::RightParen,
             "Expected ')' after while condition".to_string(),
-        );
+        )?;
 
         let body = self.statement()?;
 
@@ -100,12 +100,12 @@ impl Parser {
     }
 
     fn if_statement(&mut self) -> Result<Stmt, LoxError> {
-        self.consume(TokenType::LeftParen, "Expected '(' after 'if'.".to_string());
+        self.consume(TokenType::LeftParen, "Expected '(' after 'if'.".to_string())?;
         let condition = self.expression()?;
         self.consume(
             TokenType::RightParen,
             "Expected ')' after if condition".to_string(),
-        );
+        )?;
 
         let then_branch = self.statement()?;
 
