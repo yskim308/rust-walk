@@ -45,7 +45,7 @@ impl Environment {
         }
     }
 
-    pub fn assign(&mut self, left: Token, right: &Value) -> Result<(), LoxError> {
+    pub fn assign(&mut self, left: &Token, right: &Value) -> Result<(), LoxError> {
         if let Some(env) = &mut self.environment {
             return env.assign(left, right);
         }
@@ -55,7 +55,7 @@ impl Environment {
             Ok(())
         } else {
             Err(LoxError::runtime(
-                left,
+                left.clone(),
                 "invalid assignment target".to_string(),
             ))
         }

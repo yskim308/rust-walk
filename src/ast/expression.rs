@@ -130,6 +130,11 @@ impl fmt::Display for Expr {
             }
             Expr::Variable { token } => write!(f, "{token}"),
             Expr::Assignment { name, value } => write!(f, "{} = {value}", name.lexeme),
+            Expr::Logical {
+                left,
+                operator,
+                right,
+            } => todo!(),
         }
     }
 }

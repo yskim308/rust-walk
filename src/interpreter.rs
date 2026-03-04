@@ -22,7 +22,7 @@ impl Interpreter {
         }
     }
 
-    pub fn interpret(&mut self, statements: Vec<Stmt>) {
+    pub fn interpret(&mut self, statements: &[Stmt]) {
         for stmt in statements {
             if let Err(e) = self.evaluate_statement(stmt) {
                 eprintln!("{e}");
@@ -31,7 +31,7 @@ impl Interpreter {
         }
     }
 
-    fn evaluate_statement(&mut self, stmt: Stmt) -> Result<(), LoxError> {
+    fn evaluate_statement(&mut self, stmt: &Stmt) -> Result<(), LoxError> {
         match stmt {
             Stmt::Expression(expr) => {
                 self.evaluate_expression(expr)?;
@@ -45,11 +45,11 @@ impl Interpreter {
             Stmt::Var(token, initializer) => match initializer {
                 Some(expr) => {
                     let value = self.evaluate_expression(expr)?;
-                    self.environment.define(token.lexeme, value);
+                    self.environment.define(token.lexeme.clone(), value);
                     Ok(())
                 }
                 None => {
-                    self.environment.define(token.lexeme, Value::Nil);
+                    self.environment.define(token.lexeme.clone(), Value::Nil);
                     Ok(())
                 }
             },
@@ -57,19 +57,20 @@ impl Interpreter {
                 self.execute_block(statements, Environment::new(self.environment.clone()))
             }
             Stmt::If(conditions) => {
-                if self.evaluate_expression(conditions.condition)?.is_truthy() {
-                    self.evaluate_statement(*conditions.then_branch)?;
-                } else if let Some(else_branch) = conditions.else_branch {
-                    self.evaluate_statement(*else_branch)?;
+                if self.evaluate_expression(&conditions.condition)?.is_truthy() {
+                    self.evaluate_statement(&conditions.then_branch)?;
+                } else if let Some(else_branch) = &conditions.else_branch {
+                    self.evaluate_statement(&else_branch)?;
                 }
                 Ok(())
             }
+            Stmt::While(_) => todo!(),
         }
     }
 
     fn execute_block(
         &mut self,
-        statements: Vec<Stmt>,
+        statements: &[Stmt],
         block_env: Environment,
     ) -> Result<(), LoxError> {
         let root_env = mem::replace(&mut self.environment, block_env);
@@ -85,35 +86,40 @@ impl Interpreter {
         Ok(())
     }
 
-    fn evaluate_expression(&mut self, expr: Expr) -> Result<Value, LoxError> {
+    fn evaluate_expression(&mut self, expr: &Expr) -> Result<Value, LoxError> {
         match expr {
             Expr::Literal { value } => Ok(self.literal_to_value(value)),
-            Expr::Grouping { expression } => self.evaluate_expression(*expression),
-            Expr::Unary { token, expression } => self.evaluate_unary(token, *expression),
+            Expr::Grouping { expression } => self.evaluate_expression(expression),
+            Expr::Unary { token, expression } => self.evaluate_unary(token, expression),
             Expr::Binary {
                 left_expr,
                 operator,
                 right_expr,
-            } => self.evaluate_binary(*left_expr, operator, *right_expr),
+            } => self.evaluate_binary(left_expr, operator, right_expr),
             Expr::Variable { token } => self.environment.get(&token),
             Expr::Assignment { name, value } => {
-                let right_value = self.evaluate_expression(*value)?;
+                let right_value = self.evaluate_expression(value)?;
                 self.environment.assign(name, &right_value)?;
                 Ok(right_value)
             }
+            Expr::Logical {
+                left,
+                operator,
+                right,
+            } => todo!(),
         }
     }
 
-    fn literal_to_value(&self, literal: LiteralValue) -> Value {
+    fn literal_to_value(&self, literal: &LiteralValue) -> Value {
         match literal {
             LiteralValue::Nil => Value::Nil,
-            LiteralValue::Number(n) => Value::Number(n),
-            LiteralValue::Boolean(b) => Value::Boolean(b),
-            LiteralValue::String(s) => Value::String(Rc::new(s)),
+            LiteralValue::Number(n) => Value::Number(n.clone()),
+            LiteralValue::Boolean(b) => Value::Boolean(b.clone()),
+            LiteralValue::String(s) => Value::String(Rc::new(s.clone())),
         }
     }
 
-    fn evaluate_unary(&mut self, operator: Token, expression: Expr) -> Result<Value, LoxError> {
+    fn evaluate_unary(&mut self, operator: &Token, expression: &Expr) -> Result<Value, LoxError> {
         let right_val = self.evaluate_expression(expression)?;
 
         match operator.token_type {
@@ -122,7 +128,7 @@ impl Interpreter {
                     Ok(Value::Number(-right_val.as_number()))
                 } else {
                     Err(LoxError::runtime(
-                        operator,
+                        operator.clone(),
                         "{-} operation attempted on non numeric type".to_string(),
                     ))
                 }
@@ -137,9 +143,9 @@ impl Interpreter {
 
     fn evaluate_binary(
         &mut self,
-        left_expr: Expr,
-        operator: Token,
-        right_expr: Expr,
+        left_expr: &Expr,
+        operator: &Token,
+        right_expr: &Expr,
     ) -> Result<Value, LoxError> {
         let left_val = self.evaluate_expression(left_expr)?;
         let right_val = self.evaluate_expression(right_expr)?;
