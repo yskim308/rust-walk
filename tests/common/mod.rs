@@ -4,6 +4,7 @@ use std::{
     fs,
     path::PathBuf,
     process::{Command, Output},
+    sync::atomic::{AtomicU64, Ordering},
     time::{SystemTime, UNIX_EPOCH},
 };
 
@@ -56,11 +57,39 @@ pub fn run_cli(source: &str) -> Output {
     output
 }
 
+pub fn runtime_lines(source: &str) -> Vec<String> {
+    let output = run_cli(source);
+    stdout_runtime_lines(&output)
+}
+
+pub fn stdout_runtime_lines(output: &Output) -> Vec<String> {
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let lines: Vec<&str> = stdout.lines().collect();
+
+    let start = lines
+        .iter()
+        .rposition(|line| line.trim() == "]")
+        .map_or(0, |idx| idx + 1);
+
+    lines[start..]
+        .iter()
+        .map(|line| line.trim())
+        .filter(|line| !line.is_empty())
+        .map(str::to_string)
+        .collect()
+}
+
+pub fn stderr_text(output: &Output) -> String {
+    String::from_utf8_lossy(&output.stderr).to_string()
+}
+
 fn temp_lox_file() -> PathBuf {
+    static NEXT_ID: AtomicU64 = AtomicU64::new(0);
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .expect("system clock should be after unix epoch")
         .as_nanos();
+    let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
 
-    std::env::temp_dir().join(format!("rlox-test-{}-{now}.lox", std::process::id()))
+    std::env::temp_dir().join(format!("rlox-test-{}-{now}-{id}.lox", std::process::id()))
 }

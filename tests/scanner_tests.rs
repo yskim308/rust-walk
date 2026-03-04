@@ -64,3 +64,10 @@ fn scanner_error_paths_are_static_errors() {
         assert!(is_static_error(&errors[0]));
     }
 }
+
+#[test]
+fn scanner_skips_comments() {
+    let (types, errors) = scan_types("// line\n/* block */ + /");
+    assert!(errors.is_empty());
+    assert_eq!(types, vec![Plus, Slash, EOF]);
+}
