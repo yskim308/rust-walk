@@ -25,6 +25,11 @@ pub enum Expr {
         name: Token,
         value: Box<Expr>,
     },
+    Logical {
+        left: Box<Expr>,
+        operator: Token,
+        right: Box<Expr>,
+    },
 }
 
 #[derive(Debug)]
@@ -69,6 +74,14 @@ impl Expr {
         Expr::Assignment {
             name,
             value: Box::new(value),
+        }
+    }
+
+    pub fn logical(left: Expr, operator: Token, right: Expr) -> Self {
+        Expr::Logical {
+            left: Box::new(left),
+            operator,
+            right: Box::new(right),
         }
     }
 }

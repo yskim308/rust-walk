@@ -133,7 +133,7 @@ impl Parser {
     }
 
     fn assignment(&mut self) -> Result<Expr, LoxError> {
-        let expr = self.equality()?;
+        let expr = self.or()?;
 
         if self.peek().token_type == TokenType::Equal {
             let token = self.peek().clone();
@@ -153,6 +153,32 @@ impl Parser {
         }
 
         Ok(expr)
+    }
+
+    fn or(&mut self) -> Result<Expr, LoxError> {
+        let mut expr = self.and()?;
+
+        while self.peek().token_type == TokenType::Or {
+            let operator = self.peek().clone();
+            self.advance();
+            let right = self.and()?;
+            expr = Expr::logical(expr, operator, right);
+        }
+
+        Ok(expr)
+    }
+
+    fn and(&mut self) -> Result<Expr, LoxError> {
+        let mut expr = self.equality()?;
+
+        while self.peek().token_type == TokenType::And {
+            let operator = self.peek().clone();
+            self.advance();
+            let right = self.equality()?;
+            expr = Expr::logical(expr, operator, right);
+        }
+
+        todo!()
     }
 
     fn equality(&mut self) -> Result<Expr, LoxError> {

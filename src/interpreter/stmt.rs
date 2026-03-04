@@ -7,6 +7,7 @@ pub enum Stmt {
     If(IfConditions),
     Print(Expr),
     Var(Token, Option<Expr>), // variables can be delcared unitialized
+    While(Expr, Box<Stmt>),
 }
 
 #[derive(Debug)]
