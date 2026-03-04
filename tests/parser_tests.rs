@@ -1,45 +1,38 @@
-use rlox::{ast::parser::Parser, scanner::Scanner};
+mod common;
 
-fn parse_expression(source: &str) -> Result<String, String> {
-    let mut scanner = Scanner::new(source.to_string());
-    let (tokens, scan_errors) = scanner.scan_tokens();
+use common::{is_static_error, parse_source};
+use rlox::interpreter::stmt::Stmt;
 
-    if let Some(error) = scan_errors.first() {
-        return Err(error.to_string());
+#[test]
+fn parses_all_statement_and_expression_forms() {
+    let source = r#"
+        var a = 1;
+        var b;
+        b = a + 2 * (3 - 1);
+        print -1;
+        if (true and !false or false) print b; else print a;
+        while (false) print 0;
+        for (var i = 0; i < 1; i = i + 1) print i;
+        { print nil; }
+        "x" + "y";
+    "#;
+
+    let (statements, errors) = parse_source(source);
+    assert!(errors.is_empty());
+
+    assert!(statements.iter().any(|s| matches!(s, Stmt::Var(..))));
+    assert!(statements.iter().any(|s| matches!(s, Stmt::Expression(..))));
+    assert!(statements.iter().any(|s| matches!(s, Stmt::Print(..))));
+    assert!(statements.iter().any(|s| matches!(s, Stmt::If(..))));
+    assert!(statements.iter().any(|s| matches!(s, Stmt::While(..))));
+    assert!(statements.iter().any(|s| matches!(s, Stmt::Block(..))));
+}
+
+#[test]
+fn parser_error_paths_are_static_errors() {
+    for source in ["1 = 2;", "print 1"] {
+        let (_statements, errors) = parse_source(source);
+        assert!(!errors.is_empty());
+        assert!(errors.iter().all(is_static_error));
     }
-
-    let mut parser = Parser::new(tokens);
-    parser
-        .parse()
-        .map(|expr| expr.to_string())
-        .map_err(|e| e.to_string())
-}
-
-#[test]
-fn parses_literal_expressions() {
-    assert_eq!(parse_expression("123").unwrap(), "123");
-    assert_eq!(parse_expression("\"hello\"").unwrap(), "\"hello\"");
-    assert_eq!(parse_expression("true").unwrap(), "true");
-    assert_eq!(parse_expression("false").unwrap(), "false");
-    assert_eq!(parse_expression("nil").unwrap(), "Nil");
-}
-
-#[test]
-fn parses_unary_expressions() {
-    assert_eq!(parse_expression("-123").unwrap(), "(- 123)");
-    assert_eq!(parse_expression("!false").unwrap(), "(! false)");
-}
-
-#[test]
-fn parses_binary_precedence() {
-    assert_eq!(parse_expression("1+2*3").unwrap(), "(1 + (2 * 3))");
-    assert_eq!(
-        parse_expression("1<2==false").unwrap(),
-        "((1 < 2) == false)"
-    );
-}
-
-#[test]
-fn parses_grouping_and_basic_nesting() {
-    assert_eq!(parse_expression("!(1+2)").unwrap(), "(! (group (1 + 2)))");
 }

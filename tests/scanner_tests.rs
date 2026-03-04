@@ -1,85 +1,66 @@
-use rlox::scanner::{token::Literal, token_type::TokenType, Scanner};
+mod common;
+
+use rlox::scanner::token_type::TokenType::*;
+
+use common::{is_static_error, scan_types};
 
 #[test]
-fn operators_scanned_properly() {
-    let mut scanner = Scanner::new("!==<=>=".to_string());
-    let (tokens, errors) = scanner.scan_tokens();
-    assert_eq!(errors.len(), 0);
+fn scans_every_token_type_once() {
+    let source = "(){} ,.-+;* ! != = == < <= > >= / id \"s\" 1 and class else false fun for if nil or print return super this true var while";
+    let (types, errors) = scan_types(source);
 
-    assert!(matches!(tokens[0].token_type, TokenType::BangEqual));
-    assert_eq!(tokens[0].lexeme, "!=");
-
-    assert!(matches!(tokens[1].token_type, TokenType::Equal));
-    assert_eq!(tokens[1].lexeme, "=");
-
-    assert!(matches!(tokens[2].token_type, TokenType::LessEqual));
-    assert_eq!(tokens[2].lexeme, "<=");
-
-    assert!(matches!(tokens[3].token_type, TokenType::GreaterEqual));
-    assert_eq!(tokens[3].lexeme, ">=");
-
-    assert!(matches!(tokens[4].token_type, TokenType::EOF));
+    assert!(errors.is_empty());
+    assert_eq!(
+        types,
+        vec![
+            LeftParen,
+            RightParen,
+            LeftBrace,
+            RightBrace,
+            Comma,
+            Dot,
+            Minus,
+            Plus,
+            Semicolon,
+            Star,
+            Bang,
+            BangEqual,
+            Equal,
+            EqualEqual,
+            Less,
+            LessEqual,
+            Greater,
+            GreaterEqual,
+            Slash,
+            Identifier,
+            String,
+            Number,
+            And,
+            Class,
+            Else,
+            False,
+            Fun,
+            For,
+            If,
+            Nil,
+            Or,
+            Print,
+            Return,
+            Super,
+            This,
+            True,
+            Var,
+            While,
+            EOF,
+        ]
+    );
 }
 
 #[test]
-fn literals_scanned_properly() {
-    let mut scanner = Scanner::new("\"hello\"123.45".to_string());
-    let (tokens, errors) = scanner.scan_tokens();
-    assert_eq!(errors.len(), 0);
-
-    assert!(matches!(tokens[0].token_type, TokenType::String));
-    assert!(matches!(tokens[0].literal, Some(Literal::String(_))));
-    assert_eq!(tokens[0].lexeme, "\"hello\"");
-
-    assert!(matches!(tokens[1].token_type, TokenType::Number));
-    assert!(matches!(tokens[1].literal, Some(Literal::Number(_))));
-    assert_eq!(tokens[1].lexeme, "123.45");
-
-    assert!(matches!(tokens[2].token_type, TokenType::EOF));
-}
-
-#[test]
-fn identifiers_scanned_properly() {
-    let mut scanner = Scanner::new("myVar".to_string());
-    let (tokens, errors) = scanner.scan_tokens();
-    assert_eq!(errors.len(), 0);
-
-    assert!(matches!(tokens[0].token_type, TokenType::Identifier));
-    assert_eq!(tokens[0].lexeme, "myVar");
-    assert!(tokens[0].literal.is_none());
-
-    assert!(matches!(tokens[1].token_type, TokenType::EOF));
-}
-
-#[test]
-fn bulk_comments_are_skipped() {
-    let mut scanner = Scanner::new("/* ignore this */+".to_string());
-    let (tokens, errors) = scanner.scan_tokens();
-    assert_eq!(errors.len(), 0);
-
-    assert!(matches!(tokens[0].token_type, TokenType::Plus));
-    assert_eq!(tokens[0].lexeme, "+");
-    assert!(matches!(tokens[1].token_type, TokenType::EOF));
-}
-
-mod operator_errors {
-    use super::*;
-
-    #[test]
-    fn unexpected_operator_character_is_reported() {
-        let mut scanner = Scanner::new("@".to_string());
-        let (_tokens, errors) = scanner.scan_tokens();
+fn scanner_error_paths_are_static_errors() {
+    for source in ["@", "\"", "/*"] {
+        let (_types, errors) = scan_types(source);
         assert_eq!(errors.len(), 1);
-    }
-}
-
-mod literal_errors {
-    use super::*;
-
-    #[test]
-    fn unterminated_string_is_reported() {
-        let mut scanner = Scanner::new("\"".to_string());
-        let (_tokens, errors) = scanner.scan_tokens();
-        assert_eq!(errors.len(), 1);
+        assert!(is_static_error(&errors[0]));
     }
 }

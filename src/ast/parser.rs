@@ -169,7 +169,10 @@ impl Parser {
         let then_branch = self.statement()?;
 
         let else_branch = match self.peek().token_type {
-            TokenType::Else => Some(self.statement()?),
+            TokenType::Else => {
+                self.advance();
+                Some(self.statement()?)
+            }
             _ => None,
         };
 
