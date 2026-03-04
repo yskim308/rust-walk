@@ -56,6 +56,14 @@ impl Interpreter {
             Stmt::Block(statements) => {
                 self.execute_block(statements, Environment::new(self.environment.clone()))
             }
+            Stmt::If(conditions) => {
+                if self.evaluate_expression(conditions.condition)?.is_truthy() {
+                    self.evaluate_statement(*conditions.then_branch)?;
+                } else if let Some(else_branch) = conditions.else_branch {
+                    self.evaluate_statement(*else_branch)?;
+                }
+                Ok(())
+            }
         }
     }
 
