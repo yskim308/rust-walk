@@ -257,7 +257,7 @@ impl Parser {
             expr = Expr::logical(expr, operator, right);
         }
 
-        todo!()
+        Ok(expr)
     }
 
     fn equality(&mut self) -> Result<Expr, LoxError> {

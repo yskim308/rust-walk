@@ -54,10 +54,8 @@ impl Environment {
             *key = right.clone();
             Ok(())
         } else {
-            Err(LoxError::runtime(
-                left.clone(),
-                "invalid assignment target".to_string(),
-            ))
+            let err_msg = format!("invalid assignment target: {left}");
+            Err(LoxError::runtime(left.clone(), err_msg))
         }
     }
 }
