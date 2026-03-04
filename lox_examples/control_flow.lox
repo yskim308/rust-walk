@@ -1,0 +1,12 @@
+// fibonacci sequence
+var prev = 0;
+var current = 1;
+var temp;
+
+for (var i = 0; i < 1000; i = i + 1) {
+    temp = current;
+    current = prev + current;
+    prev = temp;
+    print current;
+  }
+
