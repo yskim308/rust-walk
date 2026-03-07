@@ -53,9 +53,7 @@ impl Interpreter {
                     Ok(())
                 }
             },
-            Stmt::Block(statements) => {
-                self.execute_block(statements)
-            }
+            Stmt::Block(statements) => self.execute_block(statements),
             Stmt::If(conditions) => {
                 if self.evaluate_expression(&conditions.condition)?.is_truthy() {
                     self.evaluate_statement(&conditions.then_branch)?;
@@ -92,15 +90,6 @@ impl Interpreter {
 
     fn evaluate_expression(&mut self, expr: &Expr) -> Result<Value, LoxError> {
         match expr {
-            Expr::Literal { value } => Ok(self.literal_to_value(value)),
-            Expr::Grouping { expression } => self.evaluate_expression(expression),
-            Expr::Unary { token, expression } => self.evaluate_unary(token, expression),
-            Expr::Binary {
-                left_expr,
-                operator,
-                right_expr,
-            } => self.evaluate_binary(left_expr, operator, right_expr),
-            Expr::Variable { token } => self.environment.get(token),
             Expr::Assignment { name, value } => {
                 let right_value = self.evaluate_expression(value)?;
                 self.environment.assign(name, &right_value)?;
@@ -111,6 +100,20 @@ impl Interpreter {
                 operator,
                 right,
             } => self.evaluate_logical(left, operator, right),
+            Expr::Binary {
+                left_expr,
+                operator,
+                right_expr,
+            } => self.evaluate_binary(left_expr, operator, right_expr),
+            Expr::Unary { token, expression } => self.evaluate_unary(token, expression),
+            Expr::Call {
+                callee,
+                paren,
+                arguments,
+            } => todo!(),
+            Expr::Grouping { expression } => self.evaluate_expression(expression),
+            Expr::Literal { value } => Ok(self.literal_to_value(value)),
+            Expr::Variable { token } => self.environment.get(token),
         }
     }
 
