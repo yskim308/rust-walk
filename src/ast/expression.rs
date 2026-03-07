@@ -3,24 +3,6 @@ use std::fmt;
 
 #[derive(Debug)]
 pub enum Expr {
-    Literal {
-        value: LiteralValue,
-    },
-    Grouping {
-        expression: Box<Expr>,
-    },
-    Unary {
-        token: Token,
-        expression: Box<Expr>,
-    },
-    Binary {
-        left_expr: Box<Expr>,
-        operator: Token,
-        right_expr: Box<Expr>,
-    },
-    Variable {
-        token: Token,
-    },
     Assignment {
         name: Token,
         value: Box<Expr>,
@@ -29,6 +11,29 @@ pub enum Expr {
         left: Box<Expr>,
         operator: Token,
         right: Box<Expr>,
+    },
+    Binary {
+        left_expr: Box<Expr>,
+        operator: Token,
+        right_expr: Box<Expr>,
+    },
+    Unary {
+        token: Token,
+        expression: Box<Expr>,
+    },
+    Call {
+        callee: Box<Expr>,
+        paren: Token,
+        arguments: Vec<Expr>,
+    },
+    Grouping {
+        expression: Box<Expr>,
+    },
+    Literal {
+        value: LiteralValue,
+    },
+    Variable {
+        token: Token,
     },
 }
 
@@ -41,35 +46,6 @@ pub enum LiteralValue {
 }
 
 impl Expr {
-    pub fn literal(value: LiteralValue) -> Self {
-        Expr::Literal { value }
-    }
-
-    pub fn grouping(expression: Expr) -> Self {
-        Expr::Grouping {
-            expression: Box::new(expression),
-        }
-    }
-
-    pub fn unary(token: Token, expression: Expr) -> Self {
-        Expr::Unary {
-            token,
-            expression: Box::new(expression),
-        }
-    }
-
-    pub fn binary(left_expr: Expr, operator: Token, right_expr: Expr) -> Self {
-        Expr::Binary {
-            left_expr: Box::new(left_expr),
-            operator,
-            right_expr: Box::new(right_expr),
-        }
-    }
-
-    pub fn variable(token: Token) -> Self {
-        Expr::Variable { token }
-    }
-
     pub fn assignment(name: Token, value: Expr) -> Self {
         Expr::Assignment {
             name,
@@ -83,6 +59,43 @@ impl Expr {
             operator,
             right: Box::new(right),
         }
+    }
+
+    pub fn binary(left_expr: Expr, operator: Token, right_expr: Expr) -> Self {
+        Expr::Binary {
+            left_expr: Box::new(left_expr),
+            operator,
+            right_expr: Box::new(right_expr),
+        }
+    }
+
+    pub fn unary(token: Token, expression: Expr) -> Self {
+        Expr::Unary {
+            token,
+            expression: Box::new(expression),
+        }
+    }
+
+    pub fn call(callee: Expr, paren: Token, arguments: Vec<Expr>) -> Self {
+        Expr::Call {
+            callee: Box::new(callee),
+            paren,
+            arguments,
+        }
+    }
+
+    pub fn grouping(expression: Expr) -> Self {
+        Expr::Grouping {
+            expression: Box::new(expression),
+        }
+    }
+
+    pub fn literal(value: LiteralValue) -> Self {
+        Expr::Literal { value }
+    }
+
+    pub fn variable(token: Token) -> Self {
+        Expr::Variable { token }
     }
 }
 
@@ -116,11 +129,12 @@ impl fmt::Display for LiteralValue {
 impl fmt::Display for Expr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Expr::Literal { value } => write!(f, "{value}"),
-            Expr::Grouping { expression } => write!(f, "(group {expression})"),
-            Expr::Unary { token, expression } => {
-                write!(f, "({} {expression})", token.lexeme)
-            }
+            Expr::Assignment { name, value } => write!(f, "{} = {value}", name.lexeme),
+            Expr::Logical {
+                left,
+                operator,
+                right,
+            } => write!(f, "{left} {} {right}", operator.lexeme),
             Expr::Binary {
                 left_expr,
                 operator,
@@ -128,13 +142,17 @@ impl fmt::Display for Expr {
             } => {
                 write!(f, "({left_expr} {} {right_expr})", operator.lexeme)
             }
+            Expr::Unary { token, expression } => {
+                write!(f, "({} {expression})", token.lexeme)
+            }
+            Expr::Call {
+                callee,
+                paren: _,
+                arguments,
+            } => write!(f, "{callee}({:?})", arguments),
+            Expr::Grouping { expression } => write!(f, "(group {expression})"),
+            Expr::Literal { value } => write!(f, "{value}"),
             Expr::Variable { token } => write!(f, "{token}"),
-            Expr::Assignment { name, value } => write!(f, "{} = {value}", name.lexeme),
-            Expr::Logical {
-                left,
-                operator,
-                right,
-            } => write!(f, "{left} {} {right}", operator.lexeme),
         }
     }
 }
