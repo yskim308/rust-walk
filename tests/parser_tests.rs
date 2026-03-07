@@ -56,19 +56,76 @@ fn parses_every_expression_form() {
 
     assert!(errors.is_empty());
     assert_eq!(statements.len(), 10);
-    assert!(matches!(statements[0], Stmt::Expression(Expr::Literal { .. })));
-    assert!(matches!(statements[1], Stmt::Expression(Expr::Grouping { .. })));
-    assert!(matches!(statements[2], Stmt::Expression(Expr::Unary { .. })));
-    assert!(matches!(statements[3], Stmt::Expression(Expr::Unary { .. })));
-    assert!(matches!(statements[4], Stmt::Expression(Expr::Binary { .. })));
-    assert!(matches!(statements[5], Stmt::Expression(Expr::Logical { .. })));
-    assert!(matches!(statements[6], Stmt::Expression(Expr::Variable { .. })));
+    assert!(matches!(
+        statements[0],
+        Stmt::Expression(Expr::Literal { .. })
+    ));
+    assert!(matches!(
+        statements[1],
+        Stmt::Expression(Expr::Grouping { .. })
+    ));
+    assert!(matches!(
+        statements[2],
+        Stmt::Expression(Expr::Unary { .. })
+    ));
+    assert!(matches!(
+        statements[3],
+        Stmt::Expression(Expr::Unary { .. })
+    ));
+    assert!(matches!(
+        statements[4],
+        Stmt::Expression(Expr::Binary { .. })
+    ));
+    assert!(matches!(
+        statements[5],
+        Stmt::Expression(Expr::Logical { .. })
+    ));
+    assert!(matches!(
+        statements[6],
+        Stmt::Expression(Expr::Variable { .. })
+    ));
     assert!(matches!(
         statements[7],
         Stmt::Expression(Expr::Assignment { .. })
     ));
-    assert!(matches!(statements[8], Stmt::Expression(Expr::Literal { .. })));
-    assert!(matches!(statements[9], Stmt::Expression(Expr::Literal { .. })));
+    assert!(matches!(
+        statements[8],
+        Stmt::Expression(Expr::Literal { .. })
+    ));
+    assert!(matches!(
+        statements[9],
+        Stmt::Expression(Expr::Literal { .. })
+    ));
+}
+
+#[test]
+fn parses_function_call_expressions() {
+    let (statements, errors) = parse_source(
+        r#"
+        foo();
+        foo(1, 2, 3);
+        foo()(1);
+        "#,
+    );
+
+    assert!(errors.is_empty());
+    assert_eq!(statements.len(), 3);
+
+    assert!(matches!(
+        &statements[0],
+        Stmt::Expression(Expr::Call { callee, arguments, .. })
+            if matches!(**callee, Expr::Variable { .. }) && arguments.is_empty()
+    ));
+    assert!(matches!(
+        &statements[1],
+        Stmt::Expression(Expr::Call { callee, arguments, .. })
+            if matches!(**callee, Expr::Variable { .. }) && arguments.len() == 3
+    ));
+    assert!(matches!(
+        &statements[2],
+        Stmt::Expression(Expr::Call { callee, arguments, .. })
+            if matches!(**callee, Expr::Call { .. }) && arguments.len() == 1
+    ));
 }
 
 #[test]
