@@ -326,7 +326,46 @@ impl Parser {
             return Ok(Expr::unary(op, right));
         }
 
-        self.primary()
+        self.call()
+    }
+
+    fn call(&mut self) -> Result<Expr, LoxError> {
+        let mut expr = self.primary()?;
+
+        // suposedly has to be this way for some future feature?
+        loop {
+            if self.peek().token_type == TokenType::LeftParen {
+                self.advance();
+                expr = self.finish_call(expr)?;
+            } else {
+                break;
+            }
+        }
+
+        Ok(expr)
+    }
+
+    fn finish_call(&mut self, callee: Expr) -> Result<Expr, LoxError> {
+        let mut arguments = Vec::new();
+
+        if self.peek().token_type != TokenType::RightParen {
+            loop {
+                arguments.push(self.expression()?);
+
+                if self.peek().token_type == TokenType::Comma {
+                    self.advance();
+                } else {
+                    break;
+                }
+            }
+        }
+
+        let paren = self.consume(
+            TokenType::RightParen,
+            "Expect ')' after function arguments".into(),
+        )?;
+
+        Ok(Expr::call(callee, paren, arguments))
     }
 
     fn primary(&mut self) -> Result<Expr, LoxError> {
