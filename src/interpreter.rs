@@ -7,6 +7,7 @@ use crate::{
     scanner::{token::Token, token_type::TokenType},
 };
 
+mod callable;
 mod environment;
 pub mod stmt;
 mod values;
@@ -110,10 +111,44 @@ impl Interpreter {
                 callee,
                 paren,
                 arguments,
-            } => todo!(),
+            } => self.evaluate_call(callee, paren, arguments),
             Expr::Grouping { expression } => self.evaluate_expression(expression),
             Expr::Literal { value } => Ok(self.literal_to_value(value)),
             Expr::Variable { token } => self.environment.get(token),
+        }
+    }
+
+    fn evaluate_call(
+        &mut self,
+        callee: &Expr,
+        paren: &Token,
+        arguments: &[Expr],
+    ) -> Result<Value, LoxError> {
+        let callee_value = self.evaluate_expression(callee)?;
+
+        let mut argument_values = Vec::new();
+
+        for expr_arguments in arguments {
+            argument_values.push(self.evaluate_expression(expr_arguments)?);
+        }
+
+        if let Value::Callable(lox_callable) = callee_value {
+            if argument_values.len() != lox_callable.arity() {
+                return Err(LoxError::runtime(
+                    paren.clone(),
+                    format!(
+                        "Expected {} arguments, but got {}",
+                        lox_callable.arity(),
+                        argument_values.len()
+                    ),
+                ));
+            }
+            lox_callable.call()
+        } else {
+            Err(LoxError::runtime(
+                paren.clone(),
+                format!("Expr not callable: {callee}"),
+            ))
         }
     }
 

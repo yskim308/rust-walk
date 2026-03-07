@@ -1,11 +1,14 @@
 use std::rc::Rc;
 
+use crate::interpreter::callable::LoxCallable;
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Value {
     Nil,
     Boolean(bool),
     Number(f64),
     String(Rc<String>),
+    Callable(LoxCallable),
 }
 
 impl std::fmt::Display for Value {
@@ -15,6 +18,7 @@ impl std::fmt::Display for Value {
             Value::Boolean(b) => write!(f, "{}", b),
             Value::Number(n) => write!(f, "{}", n),
             Value::String(s) => write!(f, "{}", s),
+            Value::Callable(_c) => write!(f, "callable"),
         }
     }
 }
@@ -49,6 +53,7 @@ impl Value {
             Value::Boolean(b) => b.to_string(),
             Value::Number(n) => n.to_string(),
             Value::String(s) => s.to_string(),
+            Value::Callable(_) => "callabe".into(),
         }
     }
 }
