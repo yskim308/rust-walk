@@ -1,9 +1,13 @@
-use std::{mem, rc::Rc};
+use std::{
+    mem,
+    rc::Rc,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 use crate::{
     ast::expression::{Expr, LiteralValue},
     error::LoxError,
-    interpreter::{environment::Environment, stmt::Stmt, values::Value},
+    interpreter::{callable::LoxCallable, environment::Environment, stmt::Stmt, values::Value},
     scanner::{token::Token, token_type::TokenType},
 };
 
@@ -12,14 +16,30 @@ mod environment;
 pub mod stmt;
 mod values;
 
+// native function(s)
+fn clock(_args: Vec<Value>) -> Result<Value, LoxError> {
+    let now = SystemTime::now();
+    let since_epoch = now
+        .duration_since(UNIX_EPOCH)
+        .expect("time went backwards?");
+
+    Ok(Value::Number(since_epoch.as_secs_f64()))
+}
+
 pub struct Interpreter {
     environment: Environment,
 }
 
 impl Interpreter {
     pub fn new() -> Self {
+        let mut global = Environment::default();
+        let clock_value = Value::Callable(LoxCallable::Native {
+            arity: 0,
+            function: clock,
+        });
+        global.define("clock".into(), clock_value);
         Interpreter {
-            environment: Environment::default(),
+            environment: global,
         }
     }
 
