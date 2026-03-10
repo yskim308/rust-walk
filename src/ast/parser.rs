@@ -1,7 +1,7 @@
 use crate::{
     ast::expression::{Expr, LiteralValue},
     error::LoxError,
-    interpreter::stmt::{IfConditions, Stmt, WhileConditions},
+    interpreter::stmt::Stmt,
     scanner::{
         token::{Literal, Token},
         token_type::TokenType,
@@ -76,7 +76,6 @@ impl Parser {
 
         Ok(Stmt::function(name, parameters, body))
     }
-
     fn var_declaration(&mut self) -> Result<Stmt, LoxError> {
         self.advance();
 
@@ -170,7 +169,7 @@ impl Parser {
             Expr::literal(LiteralValue::Boolean(true))
         };
 
-        let body = Stmt::While(WhileConditions::new(condition, body));
+        let body = Stmt::while_statement(condition, body);
 
         match initalizer {
             Some(init) => Ok(Stmt::Block(vec![init, body])),
@@ -191,7 +190,7 @@ impl Parser {
 
         let body = self.statement()?;
 
-        Ok(Stmt::While(WhileConditions::new(condition, body)))
+        Ok(Stmt::while_statement(condition, body))
     }
 
     fn if_statement(&mut self) -> Result<Stmt, LoxError> {
@@ -212,11 +211,7 @@ impl Parser {
             _ => None,
         };
 
-        Ok(Stmt::If(IfConditions::new(
-            condition,
-            then_branch,
-            else_branch,
-        )))
+        Ok(Stmt::if_statement(condition, then_branch, else_branch))
     }
 
     fn block(&mut self) -> Result<Stmt, LoxError> {

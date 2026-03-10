@@ -12,10 +12,23 @@ pub enum Stmt {
 }
 
 #[derive(Debug)]
-pub struct FunctionDefinition {
-    pub name: Token,
-    pub params: Vec<Token>,
-    pub body: Vec<Stmt>,
+struct FunctionDefinition {
+    name: Token,
+    params: Vec<Token>,
+    body: Vec<Stmt>,
+}
+
+#[derive(Debug)]
+struct WhileConditions {
+    condition: Expr,
+    stmt_body: Box<Stmt>,
+}
+
+#[derive(Debug)]
+struct IfConditions {
+    condition: Expr,
+    then_branch: Box<Stmt>,
+    else_branch: Option<Box<Stmt>>,
 }
 
 impl Stmt {
@@ -32,36 +45,19 @@ impl Stmt {
             body: fun_body,
         })
     }
-}
 
-#[derive(Debug)]
-pub struct WhileConditions {
-    pub condition: Expr,
-    pub stmt_body: Box<Stmt>,
-}
-
-impl WhileConditions {
-    pub fn new(condition: Expr, stmt_body: Stmt) -> Self {
-        WhileConditions {
+    pub fn while_statement(condition: Expr, stmt_body: Stmt) -> Self {
+        Stmt::While(WhileConditions {
             condition,
             stmt_body: Box::new(stmt_body),
-        }
+        })
     }
-}
 
-#[derive(Debug)]
-pub struct IfConditions {
-    pub condition: Expr,
-    pub then_branch: Box<Stmt>,
-    pub else_branch: Option<Box<Stmt>>,
-}
-
-impl IfConditions {
-    pub fn new(condition: Expr, then_branch: Stmt, else_branch: Option<Stmt>) -> Self {
-        IfConditions {
+    pub fn if_statement(condition: Expr, then_branch: Stmt, else_branch: Option<Stmt>) -> Self {
+        Stmt::If(IfConditions {
             condition,
             then_branch: Box::new(then_branch),
             else_branch: else_branch.map(Box::new),
-        }
+        })
     }
 }
