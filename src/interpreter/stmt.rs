@@ -4,10 +4,18 @@ use crate::{ast::expression::Expr, scanner::token::Token};
 pub enum Stmt {
     Block(Vec<Stmt>),
     Expression(Expr),
+    Function(FunctionDefinition),
     If(IfConditions),
     Print(Expr),
     Var(Token, Option<Expr>), // variables can be delcared unitialized
     While(WhileConditions),
+}
+
+#[derive(Debug)]
+pub struct FunctionDefinition {
+    name: Token,
+    params: Vec<Token>,
+    body: Vec<Stmt>,
 }
 
 #[derive(Debug)]
