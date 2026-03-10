@@ -36,9 +36,45 @@ impl Parser {
 
     fn declaration(&mut self) -> Result<Stmt, LoxError> {
         match self.peek().token_type {
+            TokenType::Fun => self.fun_declaration(),
             TokenType::Var => self.var_declaration(),
             _ => self.statement(),
         }
+    }
+
+    fn fun_declaration(&mut self) -> Result<Stmt, LoxError> {
+        let name = self.consume(
+            TokenType::Identifier,
+            "Expected function name after 'fun'".into(),
+        )?;
+
+        self.consume(
+            TokenType::LeftParen,
+            "Expected '(' after function name".into(),
+        )?;
+
+        let mut parameters = Vec::new();
+
+        if self.peek().token_type != TokenType::RightParen {
+            loop {
+                parameters
+                    .push(self.consume(TokenType::Identifier, "Expected parameter name".into())?);
+
+                if self.peek().token_type != TokenType::Comma {
+                    self.advance();
+                } else {
+                    break;
+                }
+            }
+        }
+
+        self.consume(TokenType::RightParen, "Expect ')' after parameters".into())?;
+
+        self.consume(TokenType::LeftBrace, "Expect { before function body".into())?;
+
+        let body = self.block()?;
+
+        Ok(Stmt::function(name, parameters, body))
     }
 
     fn var_declaration(&mut self) -> Result<Stmt, LoxError> {

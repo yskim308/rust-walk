@@ -13,9 +13,25 @@ pub enum Stmt {
 
 #[derive(Debug)]
 pub struct FunctionDefinition {
-    name: Token,
-    params: Vec<Token>,
-    body: Vec<Stmt>,
+    pub name: Token,
+    pub params: Vec<Token>,
+    pub body: Vec<Stmt>,
+}
+
+impl Stmt {
+    pub fn function(name: Token, params: Vec<Token>, body: Stmt) -> Self {
+        let fun_body = if let Stmt::Block(block) = body {
+            block
+        } else {
+            panic!("body for func {} is not a block statement!", name)
+        };
+
+        Stmt::Function(FunctionDefinition {
+            name,
+            params,
+            body: fun_body,
+        })
+    }
 }
 
 #[derive(Debug)]
