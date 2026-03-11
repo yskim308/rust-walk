@@ -1,16 +1,39 @@
-use crate::{error::LoxError, interpreter::values::Value};
+use crate::{
+    error::LoxError,
+    interpreter::{
+        create_global_env, environment::Environment, stmt::Stmt, values::Value, Interpreter,
+    },
+};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug)]
 pub enum LoxCallable {
     Native {
         arity: usize,
         function: fn(Vec<Value>) -> Result<Value, LoxError>,
     },
+    LoxFunction {
+        declaration: Stmt,
+    },
 }
 
 impl LoxCallable {
-    pub fn call(&self) -> Result<Value, LoxError> {
-        todo!()
+    pub fn call(&self, interpreter: Interpreter, args: Vec<Value>) -> Result<Value, LoxError> {
+        match self {
+            LoxCallable::Native { arity, function } => function(args),
+            LoxCallable::LoxFunction { declaration } => {
+                let fun_def = if let Stmt::Function(def) = declaration {
+                    def.to_owned()
+                } else {
+                    panic!("funciton declaration is not of type function statement")
+                };
+
+                let mut env = create_global_env();
+                for (i, param) in fun_def.params.iter().enumerate() {
+                    env.define(param.lexeme, args[i]);
+                }
+                todo!()
+            }
+        }
     }
 
     pub fn arity(&self) -> usize {
@@ -19,21 +42,13 @@ impl LoxCallable {
 }
 
 impl PartialEq for LoxCallable {
-    fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (
-                LoxCallable::Native {
-                    arity: arity_a,
-                    function: func_a,
-                },
-                LoxCallable::Native {
-                    arity: arity_b,
-                    function: func_b,
-                },
-            ) => {
-                // Casting to usize bypasses the compiler warning entirely!
-                arity_a == arity_b && std::ptr::fn_addr_eq(*func_a, *func_b)
-            }
-        }
+    fn eq(&self, _other: &Self) -> bool {
+        unreachable!("LoxCallable should NEVER be directly compared")
+    }
+}
+
+impl Clone for LoxCallable {
+    fn clone(&self) -> Self {
+        unreachable!("LoxCallable should NEVER be cloned")
     }
 }
