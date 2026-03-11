@@ -13,22 +13,22 @@ pub enum Stmt {
 
 #[derive(Debug)]
 struct FunctionDefinition {
-    name: Token,
-    params: Vec<Token>,
-    body: Vec<Stmt>,
+    pub name: Token,
+    pub params: Vec<Token>,
+    pub body: Vec<Stmt>,
 }
 
 #[derive(Debug)]
 struct WhileConditions {
-    condition: Expr,
-    stmt_body: Box<Stmt>,
+    pub condition: Expr,
+    pub stmt_body: Box<Stmt>,
 }
 
 #[derive(Debug)]
 struct IfConditions {
-    condition: Expr,
-    then_branch: Box<Stmt>,
-    else_branch: Option<Box<Stmt>>,
+    pub condition: Expr,
+    pub then_branch: Box<Stmt>,
+    pub else_branch: Option<Box<Stmt>>,
 }
 
 impl Stmt {
