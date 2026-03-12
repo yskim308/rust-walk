@@ -97,7 +97,8 @@ impl Interpreter {
             }
             Stmt::Function(fun_def) => {
                 let function = Value::Callable(LoxCallable::lox_function(fun_def.clone()));
-                self.environment.define(fun_def.name.to_string(), function);
+                self.environment
+                    .define(fun_def.name.lexeme.clone(), function);
                 Ok(())
             }
         }

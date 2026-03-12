@@ -43,6 +43,8 @@ impl Parser {
     }
 
     fn fun_declaration(&mut self) -> Result<Stmt, LoxError> {
+        self.consume(TokenType::Fun, "'fun expected'".into())?;
+
         let name = self.consume(
             TokenType::Identifier,
             "Expected function name after 'fun'".into(),
@@ -60,7 +62,7 @@ impl Parser {
                 parameters
                     .push(self.consume(TokenType::Identifier, "Expected parameter name".into())?);
 
-                if self.peek().token_type != TokenType::Comma {
+                if self.peek().token_type == TokenType::Comma {
                     self.advance();
                 } else {
                     break;
