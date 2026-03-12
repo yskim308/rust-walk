@@ -120,8 +120,23 @@ impl Parser {
                 self.advance();
                 self.for_statement()
             }
+            TokenType::Return => self.return_statement(),
             _ => self.expression_statement(),
         }
+    }
+
+    fn return_statement(&mut self) -> Result<Stmt, LoxError> {
+        let keyword = self.advance();
+
+        let value = if self.peek().token_type == TokenType::Semicolon {
+            None
+        } else {
+            Some(self.expression()?)
+        };
+
+        self.consume(TokenType::Semicolon, "Expect ';' after return value".into());
+
+        Ok(Stmt::Return(keyword, value))
     }
 
     fn for_statement(&mut self) -> Result<Stmt, LoxError> {

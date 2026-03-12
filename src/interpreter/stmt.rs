@@ -11,6 +11,7 @@ pub enum Stmt {
     Print(Expr),
     Var(Token, Option<Expr>), // variables can be delcared unitialized
     While(WhileConditions),
+    Return(Token, Option<Expr>),
 }
 
 #[derive(Debug)]
