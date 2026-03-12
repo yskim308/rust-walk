@@ -1,10 +1,12 @@
+use std::rc::Rc;
+
 use crate::{ast::expression::Expr, scanner::token::Token};
 
 #[derive(Debug)]
 pub enum Stmt {
     Block(Vec<Stmt>),
     Expression(Expr),
-    Function(FunctionDefinition),
+    Function(Rc<FunctionDefinition>),
     If(IfConditions),
     Print(Expr),
     Var(Token, Option<Expr>), // variables can be delcared unitialized
@@ -12,7 +14,7 @@ pub enum Stmt {
 }
 
 #[derive(Debug)]
-struct FunctionDefinition {
+pub struct FunctionDefinition {
     pub name: Token,
     pub params: Vec<Token>,
     pub body: Vec<Stmt>,
@@ -39,11 +41,11 @@ impl Stmt {
             panic!("body for func {} is not a block statement!", name)
         };
 
-        Stmt::Function(FunctionDefinition {
+        Stmt::Function(Rc::new(FunctionDefinition {
             name,
             params,
             body: fun_body,
-        })
+        }))
     }
 
     pub fn while_statement(condition: Expr, stmt_body: Stmt) -> Self {
