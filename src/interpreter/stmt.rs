@@ -21,13 +21,13 @@ pub struct FunctionDefinition {
 }
 
 #[derive(Debug)]
-struct WhileConditions {
+pub struct WhileConditions {
     pub condition: Expr,
     pub stmt_body: Box<Stmt>,
 }
 
 #[derive(Debug)]
-struct IfConditions {
+pub struct IfConditions {
     pub condition: Expr,
     pub then_branch: Box<Stmt>,
     pub else_branch: Option<Box<Stmt>>,
