@@ -37,7 +37,10 @@ impl LoxCallable {
     }
 
     pub fn arity(&self) -> usize {
-        todo!()
+        match self {
+            LoxCallable::Native { arity, function: _ } => *arity,
+            LoxCallable::LoxFunction { fun_def } => fun_def.params.len(),
+        }
     }
 }
 
