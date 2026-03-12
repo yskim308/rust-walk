@@ -1,7 +1,13 @@
+use std::rc::Rc;
+
 use crate::{
     error::LoxError,
     interpreter::{
-        create_global_env, environment::Environment, stmt::Stmt, values::Value, Interpreter,
+        create_global_env,
+        environment::Environment,
+        stmt::{FunctionDefinition, Stmt},
+        values::Value,
+        Interpreter,
     },
 };
 
@@ -12,26 +18,26 @@ pub enum LoxCallable {
         function: fn(Vec<Value>) -> Result<Value, LoxError>,
     },
     LoxFunction {
-        declaration: Stmt,
+        fun_def: Rc<FunctionDefinition>,
     },
 }
 
 impl LoxCallable {
-    pub fn call(&self, interpreter: Interpreter, args: Vec<Value>) -> Result<Value, LoxError> {
+    pub fn lox_function(fun_def: Rc<FunctionDefinition>) -> Self {
+        LoxCallable::LoxFunction { fun_def }
+    }
+
+    pub fn call(&self, interpreter: &mut Interpreter, args: Vec<Value>) -> Result<Value, LoxError> {
         match self {
             LoxCallable::Native { arity, function } => function(args),
-            LoxCallable::LoxFunction { declaration } => {
-                let fun_def = if let Stmt::Function(def) = declaration {
-                    def.to_owned()
-                } else {
-                    panic!("funciton declaration is not of type function statement")
-                };
-
+            LoxCallable::LoxFunction { fun_def } => {
                 let mut env = create_global_env();
                 for (i, param) in fun_def.params.iter().enumerate() {
-                    env.define(param.lexeme, args[i]);
+                    env.define(param.lexeme.to_string(), args[i].clone());
                 }
-                todo!()
+
+                interpreter.execute_block(&fun_def.body, env);
+                todo!("LoxCallable.call should return type Value")
             }
         }
     }
