@@ -30,14 +30,20 @@ pub struct Interpreter {
     environment: Environment,
 }
 
+pub fn create_global_env() -> Environment {
+    let mut global = Environment::default();
+    let clock_value = Value::Callable(LoxCallable::Native {
+        arity: 0,
+        function: clock,
+    });
+    global.define("clock".into(), clock_value);
+
+    global
+}
+
 impl Interpreter {
     pub fn new() -> Self {
-        let mut global = Environment::default();
-        let clock_value = Value::Callable(LoxCallable::Native {
-            arity: 0,
-            function: clock,
-        });
-        global.define("clock".into(), clock_value);
+        let global = create_global_env();
         Interpreter {
             environment: global,
         }
@@ -74,7 +80,7 @@ impl Interpreter {
                     Ok(())
                 }
             },
-            Stmt::Block(statements) => self.execute_block(statements),
+            Stmt::Block(statements) => self.execute_block(statements, self.environment.clone()),
             Stmt::If(conditions) => {
                 if self.evaluate_expression(&conditions.condition)?.is_truthy() {
                     self.evaluate_statement(&conditions.then_branch)?;
@@ -89,12 +95,20 @@ impl Interpreter {
                 }
                 Ok(())
             }
+            Stmt::Function(fun_def) => {
+                let function = Value::Callable(LoxCallable::lox_function(fun_def.clone()));
+                self.environment.define(fun_def.name.to_string(), function);
+                Ok(())
+            }
         }
     }
 
-    fn execute_block(&mut self, statements: &[Stmt]) -> Result<(), LoxError> {
-        let enclosing = mem::take(&mut self.environment);
-        self.environment = Environment::new(enclosing);
+    pub fn execute_block(
+        &mut self,
+        statements: &[Stmt],
+        outer: Environment,
+    ) -> Result<(), LoxError> {
+        self.environment = Environment::new(outer);
 
         let mut result = Ok(());
         for stmt in statements {
@@ -163,7 +177,7 @@ impl Interpreter {
                     ),
                 ));
             }
-            lox_callable.call()
+            lox_callable.call(self, argument_values)
         } else {
             Err(LoxError::runtime(
                 paren.clone(),

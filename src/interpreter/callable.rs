@@ -2,13 +2,7 @@ use std::rc::Rc;
 
 use crate::{
     error::LoxError,
-    interpreter::{
-        create_global_env,
-        environment::Environment,
-        stmt::{FunctionDefinition, Stmt},
-        values::Value,
-        Interpreter,
-    },
+    interpreter::{create_global_env, stmt::FunctionDefinition, values::Value, Interpreter},
 };
 
 #[derive(Debug)]
@@ -29,14 +23,14 @@ impl LoxCallable {
 
     pub fn call(&self, interpreter: &mut Interpreter, args: Vec<Value>) -> Result<Value, LoxError> {
         match self {
-            LoxCallable::Native { arity, function } => function(args),
+            LoxCallable::Native { arity: _, function } => function(args),
             LoxCallable::LoxFunction { fun_def } => {
                 let mut env = create_global_env();
                 for (i, param) in fun_def.params.iter().enumerate() {
                     env.define(param.lexeme.to_string(), args[i].clone());
                 }
 
-                interpreter.execute_block(&fun_def.body, env);
+                interpreter.execute_block(&fun_def.body, env)?;
                 todo!("LoxCallable.call should return type Value")
             }
         }
