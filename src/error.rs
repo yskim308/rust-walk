@@ -1,11 +1,17 @@
 use std::fmt::Display;
 
-use crate::scanner::token::Token;
+use crate::{interpreter::values::Value, scanner::token::Token};
 
 #[derive(Debug, Clone)]
 pub enum ErrorKind {
     Static,
     Runtime,
+}
+
+#[derive(Debug, Clone)]
+pub enum RuntimeSignal {
+    Error(LoxError),
+    Return(Value),
 }
 
 #[derive(Debug, Clone)]
@@ -15,33 +21,36 @@ pub struct LoxError {
     kind: ErrorKind,
 }
 
-impl LoxError {
-    pub fn new(line: usize, message: String) -> Self {
-        LoxError {
+impl RuntimeSignal {
+    pub fn static_error(line: usize, message: String) -> Self {
+        RuntimeSignal::Error(LoxError {
             line,
             message,
             kind: ErrorKind::Static,
-        }
+        })
     }
 
-    pub fn runtime(token: Token, message: String) -> Self {
-        LoxError {
+    pub fn runtime_error(token: Token, message: String) -> Self {
+        RuntimeSignal::Error(LoxError {
             line: token.line,
             message,
             kind: ErrorKind::Runtime,
-        }
+        })
     }
 }
 
-impl Display for LoxError {
+impl Display for RuntimeSignal {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self.kind {
-            ErrorKind::Static => {
-                write!(f, "Static Error on [line {}]: {}", self.line, self.message)
-            }
-            ErrorKind::Runtime => {
-                write!(f, "Runtime Error on [line {}:] {}", self.line, self.message)
-            }
+        match self {
+            RuntimeSignal::Error(err) => match err.kind {
+                ErrorKind::Static => {
+                    write!(f, "Static Error on [line {}]: {}", err.line, err.message)
+                }
+                ErrorKind::Runtime => {
+                    write!(f, "Runtime Error on [line {}:] {}", err.line, err.message)
+                }
+            },
+            RuntimeSignal::Return(val) => write!(f, "Return value: {val}"),
         }
     }
 }

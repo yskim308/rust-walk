@@ -6,7 +6,7 @@ use std::{
 
 use crate::{
     ast::expression::{Expr, LiteralValue},
-    error::LoxError,
+    error::RuntimeSignal,
     interpreter::{callable::LoxCallable, environment::Environment, stmt::Stmt, values::Value},
     scanner::{token::Token, token_type::TokenType},
 };
@@ -14,10 +14,10 @@ use crate::{
 mod callable;
 mod environment;
 pub mod stmt;
-mod values;
+pub mod values;
 
 // native function(s)
-fn clock(_args: Vec<Value>) -> Result<Value, LoxError> {
+fn clock(_args: Vec<Value>) -> Result<Value, RuntimeSignal> {
     let now = SystemTime::now();
     let since_epoch = now
         .duration_since(UNIX_EPOCH)
@@ -58,7 +58,7 @@ impl Interpreter {
         }
     }
 
-    fn evaluate_statement(&mut self, stmt: &Stmt) -> Result<(), LoxError> {
+    fn evaluate_statement(&mut self, stmt: &Stmt) -> Result<(), RuntimeSignal> {
         match stmt {
             Stmt::Expression(expr) => {
                 self.evaluate_expression(expr)?;
@@ -108,7 +108,7 @@ impl Interpreter {
         &mut self,
         statements: &[Stmt],
         outer: Environment,
-    ) -> Result<(), LoxError> {
+    ) -> Result<(), RuntimeSignal> {
         self.environment = Environment::new(outer);
 
         let mut result = Ok(());
@@ -124,7 +124,7 @@ impl Interpreter {
         result
     }
 
-    fn evaluate_expression(&mut self, expr: &Expr) -> Result<Value, LoxError> {
+    fn evaluate_expression(&mut self, expr: &Expr) -> Result<Value, RuntimeSignal> {
         match expr {
             Expr::Assignment { name, value } => {
                 let right_value = self.evaluate_expression(value)?;
@@ -158,7 +158,7 @@ impl Interpreter {
         callee: &Expr,
         paren: &Token,
         arguments: &[Expr],
-    ) -> Result<Value, LoxError> {
+    ) -> Result<Value, RuntimeSignal> {
         let callee_value = self.evaluate_expression(callee)?;
 
         let mut argument_values = Vec::new();
@@ -169,7 +169,7 @@ impl Interpreter {
 
         if let Value::Callable(lox_callable) = callee_value {
             if argument_values.len() != lox_callable.arity() {
-                return Err(LoxError::runtime(
+                return Err(RuntimeSignal::runtime_error(
                     paren.clone(),
                     format!(
                         "Expected {} arguments, but got {}",
@@ -180,7 +180,7 @@ impl Interpreter {
             }
             lox_callable.call(self, argument_values)
         } else {
-            Err(LoxError::runtime(
+            Err(RuntimeSignal::runtime_error(
                 paren.clone(),
                 format!("Expr not callable: {callee}"),
             ))
@@ -192,7 +192,7 @@ impl Interpreter {
         left_expr: &Expr,
         operator: &Token,
         right_expr: &Expr,
-    ) -> Result<Value, LoxError> {
+    ) -> Result<Value, RuntimeSignal> {
         let left = self.evaluate_expression(left_expr)?;
 
         if operator.token_type == TokenType::Or {
@@ -215,7 +215,11 @@ impl Interpreter {
         }
     }
 
-    fn evaluate_unary(&mut self, operator: &Token, expression: &Expr) -> Result<Value, LoxError> {
+    fn evaluate_unary(
+        &mut self,
+        operator: &Token,
+        expression: &Expr,
+    ) -> Result<Value, RuntimeSignal> {
         let right_val = self.evaluate_expression(expression)?;
 
         match operator.token_type {
@@ -223,7 +227,7 @@ impl Interpreter {
                 if right_val.is_numeric() {
                     Ok(Value::Number(-right_val.as_number()))
                 } else {
-                    Err(LoxError::runtime(
+                    Err(RuntimeSignal::runtime_error(
                         operator.clone(),
                         "{-} operation attempted on non numeric type".to_string(),
                     ))
@@ -242,7 +246,7 @@ impl Interpreter {
         left_expr: &Expr,
         operator: &Token,
         right_expr: &Expr,
-    ) -> Result<Value, LoxError> {
+    ) -> Result<Value, RuntimeSignal> {
         let left_val = self.evaluate_expression(left_expr)?;
         let right_val = self.evaluate_expression(right_expr)?;
 
@@ -305,12 +309,12 @@ impl Interpreter {
         left_val: &Value,
         operator: &Token,
         right_val: &Value,
-    ) -> Result<bool, LoxError> {
+    ) -> Result<bool, RuntimeSignal> {
         if left_val.is_numeric() && right_val.is_numeric() {
             Ok(true)
         } else {
             let token_type = operator.token_type.clone();
-            Err(LoxError::runtime(
+            Err(RuntimeSignal::runtime_error(
                 operator.clone(),
                 format!("'{}' operation attempted on non numeric types", token_type),
             ))
@@ -322,12 +326,12 @@ impl Interpreter {
         left_val: Value,
         operator: &Token,
         right_val: Value,
-    ) -> Result<String, LoxError> {
+    ) -> Result<String, RuntimeSignal> {
         // if either is a string, concat
         if left_val.is_stringy() || right_val.is_stringy() {
             Ok(left_val.as_string() + &right_val.as_string())
         } else {
-            Err(LoxError::runtime(
+            Err(RuntimeSignal::runtime_error(
                 operator.clone(),
                 format!(
                     "{} operation attempted on binary in which neither are of type String or Number",

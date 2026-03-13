@@ -2,7 +2,7 @@ pub mod token;
 pub mod token_type;
 
 use crate::{
-    error::LoxError,
+    error::RuntimeSignal,
     scanner::{
         token::{Literal, Token},
         token_type::TokenType,
@@ -42,7 +42,7 @@ pub struct Scanner {
     source: Vec<u8>,
     tokens: Vec<Token>,
     cursor: Cursor,
-    errors: Vec<LoxError>,
+    errors: Vec<RuntimeSignal>,
 }
 
 impl Scanner {
@@ -59,7 +59,7 @@ impl Scanner {
         }
     }
 
-    pub fn scan_tokens(&mut self) -> (Vec<Token>, Vec<LoxError>) {
+    pub fn scan_tokens(&mut self) -> (Vec<Token>, Vec<RuntimeSignal>) {
         while !self.is_at_end() {
             self.cursor.start = self.cursor.current;
             self.scan_token();
@@ -84,7 +84,7 @@ impl Scanner {
         let c = match self.advance() {
             Some(c) => c,
             None => {
-                self.errors.push(LoxError::new(
+                self.errors.push(RuntimeSignal::static_error(
                     self.cursor.line,
                     format!("failed to get u8 at index {}", self.cursor.current),
                 ));
@@ -130,7 +130,7 @@ impl Scanner {
                 } else if c.is_ascii_alphanumeric() {
                     self.handle_identifier();
                 } else {
-                    self.errors.push(LoxError::new(
+                    self.errors.push(RuntimeSignal::static_error(
                         self.cursor.line,
                         format!("unexpected token: '{}'", c as char),
                     ));
@@ -175,7 +175,7 @@ impl Scanner {
         }
 
         if self.is_at_end() {
-            self.errors.push(LoxError::new(
+            self.errors.push(RuntimeSignal::static_error(
                 original_line,
                 "unterminated bulk comment".to_string(),
             ));
@@ -239,7 +239,7 @@ impl Scanner {
         }
 
         if self.is_at_end() {
-            self.errors.push(LoxError::new(
+            self.errors.push(RuntimeSignal::static_error(
                 self.cursor.line,
                 "unterminated string".into(),
             ));
@@ -311,7 +311,8 @@ impl Scanner {
                     "Invalid UTF-8 found on line {}, bytes: {:?}, with error: {}",
                     self.cursor.line, bytes, err
                 );
-                self.errors.push(LoxError::new(self.cursor.line, msg));
+                self.errors
+                    .push(RuntimeSignal::static_error(self.cursor.line, msg));
                 return None;
             }
         };

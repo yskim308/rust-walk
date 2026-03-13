@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use crate::{
-    error::LoxError,
+    error::RuntimeSignal,
     interpreter::{create_global_env, stmt::FunctionDefinition, values::Value, Interpreter},
 };
 
@@ -9,7 +9,7 @@ use crate::{
 pub enum LoxCallable {
     Native {
         arity: usize,
-        function: fn(Vec<Value>) -> Result<Value, LoxError>,
+        function: fn(Vec<Value>) -> Result<Value, RuntimeSignal>,
     },
     LoxFunction {
         fun_def: Rc<FunctionDefinition>,
@@ -21,7 +21,11 @@ impl LoxCallable {
         LoxCallable::LoxFunction { fun_def }
     }
 
-    pub fn call(&self, interpreter: &mut Interpreter, args: Vec<Value>) -> Result<Value, LoxError> {
+    pub fn call(
+        &self,
+        interpreter: &mut Interpreter,
+        args: Vec<Value>,
+    ) -> Result<Value, RuntimeSignal> {
         match self {
             LoxCallable::Native { arity: _, function } => function(args),
             LoxCallable::LoxFunction { fun_def } => {

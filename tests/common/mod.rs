@@ -10,18 +10,18 @@ use std::{
 
 use rlox::{
     ast::parser::Parser,
-    error::LoxError,
+    error::RuntimeSignal,
     interpreter::{stmt::Stmt, Interpreter},
     scanner::{token_type::TokenType, Scanner},
 };
 
-pub fn scan_types(source: &str) -> (Vec<TokenType>, Vec<LoxError>) {
+pub fn scan_types(source: &str) -> (Vec<TokenType>, Vec<RuntimeSignal>) {
     let mut scanner = Scanner::new(source.to_string());
     let (tokens, errors) = scanner.scan_tokens();
     (tokens.into_iter().map(|t| t.token_type).collect(), errors)
 }
 
-pub fn parse_source(source: &str) -> (Vec<Stmt>, Vec<LoxError>) {
+pub fn parse_source(source: &str) -> (Vec<Stmt>, Vec<RuntimeSignal>) {
     let mut scanner = Scanner::new(source.to_string());
     let (tokens, scan_errors) = scanner.scan_tokens();
     if !scan_errors.is_empty() {
@@ -32,7 +32,7 @@ pub fn parse_source(source: &str) -> (Vec<Stmt>, Vec<LoxError>) {
     parser.parse()
 }
 
-pub fn is_static_error(err: &LoxError) -> bool {
+pub fn is_static_error(err: &RuntimeSignal) -> bool {
     err.to_string().starts_with("Static Error")
 }
 

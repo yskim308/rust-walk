@@ -1,6 +1,6 @@
 use crate::{
     ast::expression::{Expr, LiteralValue},
-    error::LoxError,
+    error::RuntimeSignal,
     interpreter::stmt::Stmt,
     scanner::{
         token::{Literal, Token},
@@ -18,9 +18,9 @@ impl Parser {
         Parser { tokens, current: 0 }
     }
 
-    pub fn parse(&mut self) -> (Vec<Stmt>, Vec<LoxError>) {
+    pub fn parse(&mut self) -> (Vec<Stmt>, Vec<RuntimeSignal>) {
         let mut statements: Vec<Stmt> = Vec::new();
-        let mut errors: Vec<LoxError> = Vec::new();
+        let mut errors: Vec<RuntimeSignal> = Vec::new();
         while !self.is_at_end() {
             match self.declaration() {
                 Ok(stmt) => statements.push(stmt),
@@ -34,7 +34,7 @@ impl Parser {
         (statements, errors)
     }
 
-    fn declaration(&mut self) -> Result<Stmt, LoxError> {
+    fn declaration(&mut self) -> Result<Stmt, RuntimeSignal> {
         match self.peek().token_type {
             TokenType::Fun => self.fun_declaration(),
             TokenType::Var => self.var_declaration(),
@@ -42,7 +42,7 @@ impl Parser {
         }
     }
 
-    fn fun_declaration(&mut self) -> Result<Stmt, LoxError> {
+    fn fun_declaration(&mut self) -> Result<Stmt, RuntimeSignal> {
         self.consume(TokenType::Fun, "'fun expected'".into())?;
 
         let name = self.consume(
@@ -78,7 +78,7 @@ impl Parser {
 
         Ok(Stmt::function(name, parameters, body))
     }
-    fn var_declaration(&mut self) -> Result<Stmt, LoxError> {
+    fn var_declaration(&mut self) -> Result<Stmt, RuntimeSignal> {
         self.advance();
 
         let name = self.consume(TokenType::Identifier, "Expected variable name".to_string())?;
@@ -98,7 +98,7 @@ impl Parser {
         Ok(Stmt::Var(name, initializer))
     }
 
-    fn statement(&mut self) -> Result<Stmt, LoxError> {
+    fn statement(&mut self) -> Result<Stmt, RuntimeSignal> {
         match self.peek().token_type {
             TokenType::If => {
                 self.advance();
@@ -125,7 +125,7 @@ impl Parser {
         }
     }
 
-    fn return_statement(&mut self) -> Result<Stmt, LoxError> {
+    fn return_statement(&mut self) -> Result<Stmt, RuntimeSignal> {
         let keyword = self.advance();
 
         let value = if self.peek().token_type == TokenType::Semicolon {
@@ -139,7 +139,7 @@ impl Parser {
         Ok(Stmt::Return(keyword, value))
     }
 
-    fn for_statement(&mut self) -> Result<Stmt, LoxError> {
+    fn for_statement(&mut self) -> Result<Stmt, RuntimeSignal> {
         self.consume(
             TokenType::LeftParen,
             "Expected '(' after 'for'.".to_string(),
@@ -194,7 +194,7 @@ impl Parser {
         }
     }
 
-    fn while_statement(&mut self) -> Result<Stmt, LoxError> {
+    fn while_statement(&mut self) -> Result<Stmt, RuntimeSignal> {
         self.consume(
             TokenType::LeftParen,
             "Expected '(' after 'while'".to_string(),
@@ -210,7 +210,7 @@ impl Parser {
         Ok(Stmt::while_statement(condition, body))
     }
 
-    fn if_statement(&mut self) -> Result<Stmt, LoxError> {
+    fn if_statement(&mut self) -> Result<Stmt, RuntimeSignal> {
         self.consume(TokenType::LeftParen, "Expected '(' after 'if'.".to_string())?;
         let condition = self.expression()?;
         self.consume(
@@ -231,7 +231,7 @@ impl Parser {
         Ok(Stmt::if_statement(condition, then_branch, else_branch))
     }
 
-    fn block(&mut self) -> Result<Stmt, LoxError> {
+    fn block(&mut self) -> Result<Stmt, RuntimeSignal> {
         let mut statements: Vec<Stmt> = Vec::new();
 
         while !self.is_at_end() && self.peek().token_type != TokenType::RightBrace {
@@ -246,23 +246,23 @@ impl Parser {
         Ok(Stmt::Block(statements))
     }
 
-    fn print_statement(&mut self) -> Result<Stmt, LoxError> {
+    fn print_statement(&mut self) -> Result<Stmt, RuntimeSignal> {
         let expression = self.expression()?;
         self.consume(TokenType::Semicolon, "Expected ';' after value".to_string())?;
         Ok(Stmt::Print(expression))
     }
 
-    fn expression_statement(&mut self) -> Result<Stmt, LoxError> {
+    fn expression_statement(&mut self) -> Result<Stmt, RuntimeSignal> {
         let expression = self.expression()?;
         self.consume(TokenType::Semicolon, "Expected ';' after value".to_string())?;
         Ok(Stmt::Expression(expression))
     }
 
-    fn expression(&mut self) -> Result<Expr, LoxError> {
+    fn expression(&mut self) -> Result<Expr, RuntimeSignal> {
         self.assignment()
     }
 
-    fn assignment(&mut self) -> Result<Expr, LoxError> {
+    fn assignment(&mut self) -> Result<Expr, RuntimeSignal> {
         let expr = self.or()?;
 
         if self.peek().token_type == TokenType::Equal {
@@ -274,7 +274,7 @@ impl Parser {
             match expr {
                 Expr::Variable { token } => return Ok(Expr::assignment(token, value)),
                 _ => {
-                    return Err(LoxError::new(
+                    return Err(RuntimeSignal::static_error(
                         token.line,
                         "Invalid assignment target".to_string(),
                     ))
@@ -285,7 +285,7 @@ impl Parser {
         Ok(expr)
     }
 
-    fn or(&mut self) -> Result<Expr, LoxError> {
+    fn or(&mut self) -> Result<Expr, RuntimeSignal> {
         let mut expr = self.and()?;
 
         while self.peek().token_type == TokenType::Or {
@@ -298,7 +298,7 @@ impl Parser {
         Ok(expr)
     }
 
-    fn and(&mut self) -> Result<Expr, LoxError> {
+    fn and(&mut self) -> Result<Expr, RuntimeSignal> {
         let mut expr = self.equality()?;
 
         while self.peek().token_type == TokenType::And {
@@ -311,7 +311,7 @@ impl Parser {
         Ok(expr)
     }
 
-    fn equality(&mut self) -> Result<Expr, LoxError> {
+    fn equality(&mut self) -> Result<Expr, RuntimeSignal> {
         let mut expr = self.comparison()?;
 
         while self.check_current_type(TokenType::BangEqual)
@@ -325,7 +325,7 @@ impl Parser {
         Ok(expr)
     }
 
-    fn comparison(&mut self) -> Result<Expr, LoxError> {
+    fn comparison(&mut self) -> Result<Expr, RuntimeSignal> {
         let mut expr = self.term()?;
 
         while self.check_current_type(TokenType::LessEqual)
@@ -341,7 +341,7 @@ impl Parser {
         Ok(expr)
     }
 
-    fn term(&mut self) -> Result<Expr, LoxError> {
+    fn term(&mut self) -> Result<Expr, RuntimeSignal> {
         let mut expr = self.factor()?;
 
         while self.check_current_type(TokenType::Minus) || self.check_current_type(TokenType::Plus)
@@ -354,7 +354,7 @@ impl Parser {
         Ok(expr)
     }
 
-    fn factor(&mut self) -> Result<Expr, LoxError> {
+    fn factor(&mut self) -> Result<Expr, RuntimeSignal> {
         let mut expr = self.unary()?;
 
         while self.check_current_type(TokenType::Star) || self.check_current_type(TokenType::Slash)
@@ -367,7 +367,7 @@ impl Parser {
         Ok(expr)
     }
 
-    fn unary(&mut self) -> Result<Expr, LoxError> {
+    fn unary(&mut self) -> Result<Expr, RuntimeSignal> {
         if self.check_current_type(TokenType::Bang) || self.check_current_type(TokenType::Minus) {
             let op = self.advance();
             let right = self.unary()?;
@@ -377,7 +377,7 @@ impl Parser {
         self.call()
     }
 
-    fn call(&mut self) -> Result<Expr, LoxError> {
+    fn call(&mut self) -> Result<Expr, RuntimeSignal> {
         let mut expr = self.primary()?;
 
         // suposedly has to be this way for some future feature?
@@ -393,7 +393,7 @@ impl Parser {
         Ok(expr)
     }
 
-    fn finish_call(&mut self, callee: Expr) -> Result<Expr, LoxError> {
+    fn finish_call(&mut self, callee: Expr) -> Result<Expr, RuntimeSignal> {
         let mut arguments = Vec::new();
 
         if self.peek().token_type != TokenType::RightParen {
@@ -416,7 +416,7 @@ impl Parser {
         Ok(Expr::call(callee, paren, arguments))
     }
 
-    fn primary(&mut self) -> Result<Expr, LoxError> {
+    fn primary(&mut self) -> Result<Expr, RuntimeSignal> {
         let token = self.advance();
         Ok(match token.token_type {
             TokenType::False => Expr::literal(LiteralValue::Boolean(false)),
@@ -444,7 +444,7 @@ impl Parser {
             }
             TokenType::Identifier => Expr::variable(token),
             t => {
-                return Err(LoxError::new(
+                return Err(RuntimeSignal::static_error(
                     token.line,
                     format!("unexpected token in primary expression: {t}"),
                 ))
@@ -452,11 +452,11 @@ impl Parser {
         })
     }
 
-    fn consume(&mut self, token_type: TokenType, msg: String) -> Result<Token, LoxError> {
+    fn consume(&mut self, token_type: TokenType, msg: String) -> Result<Token, RuntimeSignal> {
         if self.check_current_type(token_type) {
             return Ok(self.advance());
         }
-        Err(LoxError::new(self.peek().line, msg))
+        Err(RuntimeSignal::static_error(self.peek().line, msg))
     }
 
     fn synchronize(&mut self) {
