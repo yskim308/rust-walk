@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use crate::{
     error::RuntimeSignal,
-    interpreter::{stmt::FunctionDefinition, values::Value, Interpreter},
+    interpreter::{environment::Environment, stmt::FunctionDefinition, values::Value, Interpreter},
 };
 
 #[derive(Debug)]
@@ -29,7 +29,7 @@ impl LoxCallable {
         match self {
             LoxCallable::Native { arity: _, function } => function(args),
             LoxCallable::LoxFunction { fun_def } => {
-                let env = interpreter.globals.clone();
+                let env = Environment::new_env_ref(interpreter.globals.clone());
                 for (i, param) in fun_def.params.iter().enumerate() {
                     env.borrow_mut()
                         .define(param.lexeme.to_string(), args[i].clone());

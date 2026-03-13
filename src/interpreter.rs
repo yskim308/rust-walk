@@ -135,6 +135,7 @@ impl Interpreter {
         statements: &[Stmt],
         enclosing: EnvRef,
     ) -> Result<(), RuntimeSignal> {
+        let previous = self.environment.clone();
         self.environment = Environment::new_env_ref(enclosing.clone());
 
         let mut result = Ok(());
@@ -145,7 +146,7 @@ impl Interpreter {
             }
         }
 
-        self.environment = enclosing;
+        self.environment = previous;
         result
     }
 
