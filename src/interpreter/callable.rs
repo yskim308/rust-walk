@@ -35,8 +35,13 @@ impl LoxCallable {
                         .define(param.lexeme.to_string(), args[i].clone());
                 }
 
-                interpreter.execute_block(&fun_def.body, env)?;
-                todo!("LoxCallable.call should return type Value")
+                match interpreter.execute_block(&fun_def.body, env) {
+                    Ok(()) => Ok(Value::Nil),
+                    Err(RuntimeSignal::Return(value)) => {
+                        Ok(value.unwrap_or(Value::Nil))
+                    }
+                    Err(err) => Err(err),
+                }
             }
         }
     }
