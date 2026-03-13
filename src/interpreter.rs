@@ -1,5 +1,4 @@
 use std::{
-    mem,
     rc::Rc,
     time::{SystemTime, UNIX_EPOCH},
 };
@@ -7,7 +6,12 @@ use std::{
 use crate::{
     ast::expression::{Expr, LiteralValue},
     error::RuntimeSignal,
-    interpreter::{callable::LoxCallable, environment::Environment, stmt::Stmt, values::Value},
+    interpreter::{
+        callable::LoxCallable,
+        environment::{EnvRef, Environment},
+        stmt::Stmt,
+        values::Value,
+    },
     scanner::{token::Token, token_type::TokenType},
 };
 
@@ -27,16 +31,16 @@ fn clock(_args: Vec<Value>) -> Result<Value, RuntimeSignal> {
 }
 
 pub struct Interpreter {
-    environment: Environment,
+    environment: EnvRef,
 }
 
-pub fn create_global_env() -> Environment {
-    let mut global = Environment::default();
+pub fn create_global_env() -> EnvRef {
+    let global = Environment::new_env_ref(None);
     let clock_value = Value::Callable(LoxCallable::Native {
         arity: 0,
         function: clock,
     });
-    global.define("clock".into(), clock_value);
+    global.borrow_mut().define("clock".into(), clock_value);
 
     global
 }
@@ -77,11 +81,15 @@ impl Interpreter {
             Stmt::Var(token, initializer) => match initializer {
                 Some(expr) => {
                     let value = self.evaluate_expression(expr)?;
-                    self.environment.define(token.lexeme.clone(), value);
+                    self.environment
+                        .borrow_mut()
+                        .define(token.lexeme.clone(), value);
                     Ok(())
                 }
                 None => {
-                    self.environment.define(token.lexeme.clone(), Value::Nil);
+                    self.environment
+                        .borrow_mut()
+                        .define(token.lexeme.clone(), Value::Nil);
                     Ok(())
                 }
             },
@@ -103,6 +111,7 @@ impl Interpreter {
             Stmt::Function(fun_def) => {
                 let function = Value::Callable(LoxCallable::lox_function(fun_def.clone()));
                 self.environment
+                    .borrow_mut()
                     .define(fun_def.name.lexeme.clone(), function);
                 Ok(())
             }
@@ -120,9 +129,9 @@ impl Interpreter {
     pub fn execute_block(
         &mut self,
         statements: &[Stmt],
-        outer: Environment,
+        enclosing: EnvRef,
     ) -> Result<(), RuntimeSignal> {
-        self.environment = Environment::new(outer);
+        self.environment = Environment::new_env_ref(enclosing.clone());
 
         let mut result = Ok(());
         for stmt in statements {
@@ -132,8 +141,7 @@ impl Interpreter {
             }
         }
 
-        let block_env = mem::take(&mut self.environment);
-        self.environment = block_env.into_enclosing().unwrap_or_default();
+        self.environment = enclosing;
         result
     }
 
@@ -141,7 +149,7 @@ impl Interpreter {
         match expr {
             Expr::Assignment { name, value } => {
                 let right_value = self.evaluate_expression(value)?;
-                self.environment.assign(name, &right_value)?;
+                self.environment.borrow_mut().assign(name, &right_value)?;
                 Ok(right_value)
             }
             Expr::Logical {
@@ -162,7 +170,7 @@ impl Interpreter {
             } => self.evaluate_call(callee, paren, arguments),
             Expr::Grouping { expression } => self.evaluate_expression(expression),
             Expr::Literal { value } => Ok(self.literal_to_value(value)),
-            Expr::Variable { token } => self.environment.get(token),
+            Expr::Variable { token } => self.environment.borrow().get(token),
         }
     }
 

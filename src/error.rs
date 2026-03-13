@@ -50,7 +50,7 @@ impl Display for RuntimeSignal {
                     write!(f, "Runtime Error on [line {}:] {}", err.line, err.message)
                 }
             },
-            RuntimeSignal::Return(val) => write!(f, "Return value: {val}"),
+            RuntimeSignal::Return(val) => write!(f, "Return value: {:#?}", val),
         }
     }
 }

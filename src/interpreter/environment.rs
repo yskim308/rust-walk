@@ -1,27 +1,33 @@
-use std::collections::HashMap;
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use crate::{error::RuntimeSignal, interpreter::values::Value, scanner::token::Token};
 
+pub type EnvRef = Rc<RefCell<Environment>>;
+
 #[derive(Clone, Default)]
 pub struct Environment {
-    environment: Option<Box<Environment>>,
+    enclosing: Option<EnvRef>,
     values: HashMap<String, Value>,
 }
 
 impl Environment {
-    pub fn new(environment: Environment) -> Self {
+    pub fn new(enclosing: EnvRef) -> Self {
         Environment {
-            environment: Some(Box::new(environment)),
+            enclosing: Some(enclosing),
             values: HashMap::new(),
+        }
+    }
+
+    pub fn new_env_ref(enclosing: impl Into<Option<EnvRef>>) -> EnvRef {
+        if let Some(env_ref) = enclosing.into() {
+            Rc::new(RefCell::new(Self::new(env_ref)))
+        } else {
+            Rc::new(RefCell::new(Self::default()))
         }
     }
 
     pub fn define(&mut self, name: String, value: Value) {
         self.values.insert(name, value);
-    }
-
-    pub fn into_enclosing(self) -> Option<Environment> {
-        self.environment.map(|env| *env)
     }
 
     pub fn get(&self, name: &Token) -> Result<Value, RuntimeSignal> {
@@ -40,8 +46,8 @@ impl Environment {
             }
         }
 
-        match &self.environment {
-            Some(env) => env.get(name),
+        match &self.enclosing {
+            Some(env) => env.borrow().get(name),
             None => Err(RuntimeSignal::static_error(
                 name.line,
                 format!("Undefined Variable '{}'", name.lexeme),
@@ -53,8 +59,8 @@ impl Environment {
         if let Some(key) = self.values.get_mut(&left.lexeme) {
             *key = right.clone();
             Ok(())
-        } else if let Some(env) = &mut self.environment {
-            env.assign(left, right)
+        } else if let Some(env) = &mut self.enclosing {
+            env.borrow_mut().assign(left, right)
         } else {
             let err_msg = format!("invalid assignment target: {left}");
             Err(RuntimeSignal::runtime_error(left.clone(), err_msg))

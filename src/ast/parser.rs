@@ -134,7 +134,7 @@ impl Parser {
             Some(self.expression()?)
         };
 
-        self.consume(TokenType::Semicolon, "Expect ';' after return value".into());
+        self.consume(TokenType::Semicolon, "Expect ';' after return value".into())?;
 
         Ok(Stmt::Return(keyword, value))
     }
