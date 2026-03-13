@@ -66,7 +66,7 @@ fn run(source: String) {
         return;
     }
 
-    println!("{:#?}", statements);
+    // println!("{:#?}", statements);
 
     // interpret the AST
     let mut interpreter = Interpreter::new();

@@ -2,7 +2,12 @@ use std::rc::Rc;
 
 use crate::{
     error::RuntimeSignal,
-    interpreter::{environment::Environment, stmt::FunctionDefinition, values::Value, Interpreter},
+    interpreter::{
+        environment::{EnvRef, Environment},
+        stmt::FunctionDefinition,
+        values::Value,
+        Interpreter,
+    },
 };
 
 #[derive(Debug)]
@@ -12,13 +17,14 @@ pub enum LoxCallable {
         function: fn(Vec<Value>) -> Result<Value, RuntimeSignal>,
     },
     LoxFunction {
+        closure: EnvRef,
         fun_def: Rc<FunctionDefinition>,
     },
 }
 
 impl LoxCallable {
-    pub fn lox_function(fun_def: Rc<FunctionDefinition>) -> Self {
-        LoxCallable::LoxFunction { fun_def }
+    pub fn lox_function(fun_def: Rc<FunctionDefinition>, closure: EnvRef) -> Self {
+        LoxCallable::LoxFunction { fun_def, closure }
     }
 
     pub fn call(
@@ -28,8 +34,8 @@ impl LoxCallable {
     ) -> Result<Value, RuntimeSignal> {
         match self {
             LoxCallable::Native { arity: _, function } => function(args),
-            LoxCallable::LoxFunction { fun_def } => {
-                let env = Environment::new_env_ref(interpreter.globals.clone());
+            LoxCallable::LoxFunction { fun_def, closure } => {
+                let env = Environment::new_env_ref(closure.clone());
                 for (i, param) in fun_def.params.iter().enumerate() {
                     env.borrow_mut()
                         .define(param.lexeme.to_string(), args[i].clone());
@@ -37,9 +43,7 @@ impl LoxCallable {
 
                 match interpreter.execute_block(&fun_def.body, env) {
                     Ok(()) => Ok(Value::Nil),
-                    Err(RuntimeSignal::Return(value)) => {
-                        Ok(value.unwrap_or(Value::Nil))
-                    }
+                    Err(RuntimeSignal::Return(value)) => Ok(value.unwrap_or(Value::Nil)),
                     Err(err) => Err(err),
                 }
             }
@@ -49,7 +53,7 @@ impl LoxCallable {
     pub fn arity(&self) -> usize {
         match self {
             LoxCallable::Native { arity, function: _ } => *arity,
-            LoxCallable::LoxFunction { fun_def } => fun_def.params.len(),
+            LoxCallable::LoxFunction { fun_def, _ } => fun_def.params.len(),
         }
     }
 }

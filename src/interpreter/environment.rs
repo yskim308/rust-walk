@@ -4,7 +4,7 @@ use crate::{error::RuntimeSignal, interpreter::values::Value, scanner::token::To
 
 pub type EnvRef = Rc<RefCell<Environment>>;
 
-#[derive(Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct Environment {
     enclosing: Option<EnvRef>,
     values: HashMap<String, Value>,

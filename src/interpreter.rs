@@ -112,8 +112,10 @@ impl Interpreter {
                 Ok(())
             }
             Stmt::Function(fun_def) => {
-                let function =
-                    Value::Callable(Rc::new(LoxCallable::lox_function(fun_def.clone())));
+                let function = Value::Callable(Rc::new(LoxCallable::lox_function(
+                    fun_def.clone(),
+                    self.environment.clone(),
+                )));
                 self.environment
                     .borrow_mut()
                     .define(fun_def.name.lexeme.clone(), function);
