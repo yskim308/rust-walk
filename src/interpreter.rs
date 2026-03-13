@@ -38,10 +38,10 @@ pub struct Interpreter {
 pub fn create_global_env() -> EnvRef {
     let global = Environment::new_env_ref(None);
 
-    let clock_value = Value::Callable(LoxCallable::Native {
+    let clock_value = Value::Callable(Rc::new(LoxCallable::Native {
         arity: 0,
         function: clock,
-    });
+    }));
     global.borrow_mut().define("clock".into(), clock_value);
 
     global
@@ -112,7 +112,8 @@ impl Interpreter {
                 Ok(())
             }
             Stmt::Function(fun_def) => {
-                let function = Value::Callable(LoxCallable::lox_function(fun_def.clone()));
+                let function =
+                    Value::Callable(Rc::new(LoxCallable::lox_function(fun_def.clone())));
                 self.environment
                     .borrow_mut()
                     .define(fun_def.name.lexeme.clone(), function);

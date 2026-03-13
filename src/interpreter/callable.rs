@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use crate::{
     error::RuntimeSignal,
-    interpreter::{create_global_env, stmt::FunctionDefinition, values::Value, Interpreter},
+    interpreter::{stmt::FunctionDefinition, values::Value, Interpreter},
 };
 
 #[derive(Debug)]
@@ -46,17 +46,5 @@ impl LoxCallable {
             LoxCallable::Native { arity, function: _ } => *arity,
             LoxCallable::LoxFunction { fun_def } => fun_def.params.len(),
         }
-    }
-}
-
-impl PartialEq for LoxCallable {
-    fn eq(&self, _other: &Self) -> bool {
-        unreachable!("LoxCallable should NEVER be directly compared")
-    }
-}
-
-impl Clone for LoxCallable {
-    fn clone(&self) -> Self {
-        unreachable!("LoxCallable should NEVER be cloned")
     }
 }

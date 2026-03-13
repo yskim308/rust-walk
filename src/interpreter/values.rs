@@ -2,13 +2,13 @@ use std::rc::Rc;
 
 use crate::interpreter::callable::LoxCallable;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub enum Value {
     Nil,
     Boolean(bool),
     Number(f64),
     String(Rc<String>),
-    Callable(LoxCallable),
+    Callable(Rc<LoxCallable>),
 }
 
 impl std::fmt::Display for Value {
@@ -54,6 +54,19 @@ impl Value {
             Value::Number(n) => n.to_string(),
             Value::String(s) => s.to_string(),
             Value::Callable(_) => "callabe".into(),
+        }
+    }
+}
+
+impl PartialEq for Value {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Value::Nil, Value::Nil) => true,
+            (Value::Boolean(a), Value::Boolean(b)) => a == b,
+            (Value::Number(a), Value::Number(b)) => a == b,
+            (Value::String(a), Value::String(b)) => a == b,
+            (Value::Callable(a), Value::Callable(b)) => Rc::ptr_eq(a, b),
+            _ => false,
         }
     }
 }
