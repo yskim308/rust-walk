@@ -11,7 +11,7 @@ pub enum ErrorKind {
 #[derive(Debug, Clone)]
 pub enum RuntimeSignal {
     Error(LoxError),
-    Return(Value),
+    Return(Option<Value>),
 }
 
 #[derive(Debug, Clone)]

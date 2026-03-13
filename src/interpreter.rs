@@ -52,7 +52,12 @@ impl Interpreter {
     pub fn interpret(&mut self, statements: &[Stmt]) {
         for stmt in statements {
             if let Err(e) = self.evaluate_statement(stmt) {
-                eprintln!("{e}");
+                match e {
+                    RuntimeSignal::Error(_) => eprintln!("{e}"),
+                    RuntimeSignal::Return(_) => {
+                        eprintln!("Should not be returning from top level")
+                    }
+                }
                 return;
             }
         }
@@ -100,6 +105,14 @@ impl Interpreter {
                 self.environment
                     .define(fun_def.name.lexeme.clone(), function);
                 Ok(())
+            }
+            Stmt::Return(_, expr) => {
+                let value = if let Some(expr) = expr {
+                    Some(self.evaluate_expression(expr)?)
+                } else {
+                    None
+                };
+                Err(RuntimeSignal::Return(value))
             }
         }
     }
