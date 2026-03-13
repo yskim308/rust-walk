@@ -70,3 +70,32 @@ fn runtime_error_paths_report_runtime_error_type() {
         assert!(stderr_text(&output).contains("Runtime Error"));
     }
 }
+
+#[test]
+fn functions_support_return_and_parameters() {
+    let lines = runtime_lines(
+        r#"
+        fun add(a, b) {
+          return a + b;
+        }
+        print add(1, 2);
+        "#,
+    );
+
+    assert_eq!(lines, vec!["3"]);
+}
+
+#[test]
+fn functions_support_recursion() {
+    let lines = runtime_lines(
+        r#"
+        fun fib(n) {
+          if (n <= 1) return n;
+          return fib(n - 2) + fib(n - 1);
+        }
+        print fib(6);
+        "#,
+    );
+
+    assert_eq!(lines, vec!["8"]);
+}
