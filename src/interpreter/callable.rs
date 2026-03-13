@@ -29,7 +29,7 @@ impl LoxCallable {
         match self {
             LoxCallable::Native { arity: _, function } => function(args),
             LoxCallable::LoxFunction { fun_def } => {
-                let env = create_global_env();
+                let env = interpreter.globals.clone();
                 for (i, param) in fun_def.params.iter().enumerate() {
                     env.borrow_mut()
                         .define(param.lexeme.to_string(), args[i].clone());

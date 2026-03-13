@@ -31,11 +31,13 @@ fn clock(_args: Vec<Value>) -> Result<Value, RuntimeSignal> {
 }
 
 pub struct Interpreter {
+    pub globals: EnvRef,
     environment: EnvRef,
 }
 
 pub fn create_global_env() -> EnvRef {
     let global = Environment::new_env_ref(None);
+
     let clock_value = Value::Callable(LoxCallable::Native {
         arity: 0,
         function: clock,
@@ -49,6 +51,7 @@ impl Interpreter {
     pub fn new() -> Self {
         let global = create_global_env();
         Interpreter {
+            globals: global.clone(),
             environment: global,
         }
     }
