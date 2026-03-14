@@ -56,6 +56,10 @@ impl Interpreter {
         }
     }
 
+    pub fn resolve(&self, expr: &Expr, depth: usize) {
+        todo!()
+    }
+
     pub fn interpret(&mut self, statements: &[Stmt]) {
         for stmt in statements {
             if let Err(e) = self.evaluate_statement(stmt) {
