@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     rc::Rc,
     time::{SystemTime, UNIX_EPOCH},
 };
@@ -32,6 +33,7 @@ fn clock(_args: Vec<Value>) -> Result<Value, RuntimeSignal> {
 
 pub struct Interpreter {
     pub globals: EnvRef,
+    locals: HashMap<u32, usize>,
     environment: EnvRef,
 }
 
@@ -52,12 +54,13 @@ impl Interpreter {
         let global = create_global_env();
         Interpreter {
             globals: global.clone(),
+            locals: HashMap::new(),
             environment: global,
         }
     }
 
-    pub fn resolve(&self, expr: &Expr, depth: usize) {
-        todo!()
+    pub fn resolve(&mut self, expr: &Expr, depth: usize) {
+        self.locals.insert(expr.id(), depth);
     }
 
     pub fn interpret(&mut self, statements: &[Stmt]) {
@@ -158,30 +161,33 @@ impl Interpreter {
 
     fn evaluate_expression(&mut self, expr: &Expr) -> Result<Value, RuntimeSignal> {
         match expr {
-            Expr::Assignment { name, value } => {
+            Expr::Assignment { name, value, .. } => {
                 let right_value = self.evaluate_expression(value)?;
                 self.environment.borrow_mut().assign(name, &right_value)?;
                 Ok(right_value)
             }
             Expr::Logical {
+                id: _,
                 left,
                 operator,
                 right,
             } => self.evaluate_logical(left, operator, right),
             Expr::Binary {
+                id: _,
                 left_expr,
                 operator,
                 right_expr,
             } => self.evaluate_binary(left_expr, operator, right_expr),
-            Expr::Unary { token, expression } => self.evaluate_unary(token, expression),
+            Expr::Unary { token, expression, .. } => self.evaluate_unary(token, expression),
             Expr::Call {
+                id: _,
                 callee,
                 paren,
                 arguments,
             } => self.evaluate_call(callee, paren, arguments),
-            Expr::Grouping { expression } => self.evaluate_expression(expression),
-            Expr::Literal { value } => Ok(self.literal_to_value(value)),
-            Expr::Variable { token } => self.environment.borrow().get(token),
+            Expr::Grouping { expression, .. } => self.evaluate_expression(expression),
+            Expr::Literal { value, .. } => Ok(self.literal_to_value(value)),
+            Expr::Variable { token, .. } => self.environment.borrow().get(token),
         }
     }
 

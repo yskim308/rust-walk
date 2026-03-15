@@ -70,9 +70,10 @@ impl Resolver {
 
     fn resolve_expr(&mut self, expr: &Expr) -> Result<(), RuntimeSignal> {
         match expr {
-            Expr::Variable { token } => self.resolve_var_expr(token, expr),
-            Expr::Assignment { name, value } => self.resolve_assign_expr(name, value, expr),
+            Expr::Variable { token, .. } => self.resolve_var_expr(token, expr),
+            Expr::Assignment { name, value, .. } => self.resolve_assign_expr(name, value, expr),
             Expr::Binary {
+                id: _,
                 left_expr,
                 operator: _,
                 right_expr,
@@ -81,6 +82,7 @@ impl Resolver {
                 self.resolve_expr(right_expr)
             }
             Expr::Call {
+                id: _,
                 callee,
                 paren: _,
                 arguments,
@@ -91,9 +93,10 @@ impl Resolver {
                 }
                 Ok(())
             }
-            Expr::Grouping { expression } => self.resolve_expr(expression),
+            Expr::Grouping { expression, .. } => self.resolve_expr(expression),
             Expr::Literal { .. } => Ok(()),
             Expr::Logical {
+                id: _,
                 left,
                 operator: _,
                 right,
@@ -104,6 +107,7 @@ impl Resolver {
             Expr::Unary {
                 token: _,
                 expression,
+                id: _,
             } => self.resolve_expr(expression),
         }
     }

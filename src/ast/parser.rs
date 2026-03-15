@@ -11,11 +11,16 @@ use crate::{
 pub struct Parser {
     tokens: Vec<Token>,
     current: usize,
+    next_expr_id: u32,
 }
 
 impl Parser {
     pub fn new(tokens: Vec<Token>) -> Self {
-        Parser { tokens, current: 0 }
+        Parser {
+            tokens,
+            current: 0,
+            next_expr_id: 0,
+        }
     }
 
     pub fn parse(&mut self) -> (Vec<Stmt>, Vec<RuntimeSignal>) {
@@ -125,6 +130,12 @@ impl Parser {
         }
     }
 
+    fn fresh_expr_id(&mut self) -> u32 {
+        let id = self.next_expr_id;
+        self.next_expr_id = self.next_expr_id.wrapping_add(1);
+        id
+    }
+
     fn return_statement(&mut self) -> Result<Stmt, RuntimeSignal> {
         let keyword = self.advance();
 
@@ -183,7 +194,7 @@ impl Parser {
         let condition = if let Some(cond) = condition {
             cond
         } else {
-            Expr::literal(LiteralValue::Boolean(true))
+            Expr::literal(self.fresh_expr_id(), LiteralValue::Boolean(true))
         };
 
         let body = Stmt::while_statement(condition, body);
@@ -272,7 +283,9 @@ impl Parser {
             let value = self.assignment()?;
 
             match expr {
-                Expr::Variable { token } => return Ok(Expr::assignment(token, value)),
+                Expr::Variable { token, .. } => {
+                    return Ok(Expr::assignment(self.fresh_expr_id(), token, value))
+                }
                 _ => {
                     return Err(RuntimeSignal::static_error(
                         token.line,
@@ -292,7 +305,7 @@ impl Parser {
             let operator = self.peek().clone();
             self.advance();
             let right = self.and()?;
-            expr = Expr::logical(expr, operator, right);
+            expr = Expr::logical(self.fresh_expr_id(), expr, operator, right);
         }
 
         Ok(expr)
@@ -305,7 +318,7 @@ impl Parser {
             let operator = self.peek().clone();
             self.advance();
             let right = self.equality()?;
-            expr = Expr::logical(expr, operator, right);
+            expr = Expr::logical(self.fresh_expr_id(), expr, operator, right);
         }
 
         Ok(expr)
@@ -319,7 +332,7 @@ impl Parser {
         {
             let operator = self.advance();
             let right = self.comparison()?;
-            expr = Expr::binary(expr, operator, right);
+            expr = Expr::binary(self.fresh_expr_id(), expr, operator, right);
         }
 
         Ok(expr)
@@ -335,7 +348,7 @@ impl Parser {
         {
             let operator = self.advance();
             let right = self.term()?;
-            expr = Expr::binary(expr, operator, right);
+            expr = Expr::binary(self.fresh_expr_id(), expr, operator, right);
         }
 
         Ok(expr)
@@ -348,7 +361,7 @@ impl Parser {
         {
             let operator = self.advance();
             let right = self.factor()?;
-            expr = Expr::binary(expr, operator, right);
+            expr = Expr::binary(self.fresh_expr_id(), expr, operator, right);
         }
 
         Ok(expr)
@@ -361,7 +374,7 @@ impl Parser {
         {
             let op = self.advance();
             let right = self.unary()?;
-            expr = Expr::binary(expr, op, right);
+            expr = Expr::binary(self.fresh_expr_id(), expr, op, right);
         }
 
         Ok(expr)
@@ -371,7 +384,7 @@ impl Parser {
         if self.check_current_type(TokenType::Bang) || self.check_current_type(TokenType::Minus) {
             let op = self.advance();
             let right = self.unary()?;
-            return Ok(Expr::unary(op, right));
+            return Ok(Expr::unary(self.fresh_expr_id(), op, right));
         }
 
         self.call()
@@ -413,26 +426,26 @@ impl Parser {
             "Expect ')' after function arguments".into(),
         )?;
 
-        Ok(Expr::call(callee, paren, arguments))
+        Ok(Expr::call(self.fresh_expr_id(), callee, paren, arguments))
     }
 
     fn primary(&mut self) -> Result<Expr, RuntimeSignal> {
         let token = self.advance();
         Ok(match token.token_type {
-            TokenType::False => Expr::literal(LiteralValue::Boolean(false)),
-            TokenType::True => Expr::literal(LiteralValue::Boolean(true)),
-            TokenType::Nil => Expr::literal(LiteralValue::Nil),
+            TokenType::False => Expr::literal(self.fresh_expr_id(), LiteralValue::Boolean(false)),
+            TokenType::True => Expr::literal(self.fresh_expr_id(), LiteralValue::Boolean(true)),
+            TokenType::Nil => Expr::literal(self.fresh_expr_id(), LiteralValue::Nil),
             TokenType::Number => {
                 let Literal::Number(number) = token.literal.unwrap() else {
                     panic!("Error while handling token, TokenType::Number does not have a Literal::Number payload");
                 };
-                Expr::literal(LiteralValue::Number(number))
+                Expr::literal(self.fresh_expr_id(), LiteralValue::Number(number))
             }
             TokenType::String => {
                 let Literal::String(s) = token.literal.unwrap() else {
                     panic!("Error while handling token, TokenType::String does not have a Literal::String payload");
                 };
-                Expr::literal(LiteralValue::String(s))
+                Expr::literal(self.fresh_expr_id(), LiteralValue::String(s))
             }
             TokenType::LeftParen => {
                 let expr = self.expression()?;
@@ -440,9 +453,9 @@ impl Parser {
                     TokenType::RightParen,
                     "Expected ')' after expression".to_string(),
                 )?;
-                Expr::grouping(expr)
+                Expr::grouping(self.fresh_expr_id(), expr)
             }
-            TokenType::Identifier => Expr::variable(token),
+            TokenType::Identifier => Expr::variable(self.fresh_expr_id(), token),
             t => {
                 return Err(RuntimeSignal::static_error(
                     token.line,
