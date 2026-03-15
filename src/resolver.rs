@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::{
     ast::expression::Expr,
-    error::{LoxError, RuntimeSignal},
+    error::RuntimeSignal,
     interpreter::{
         stmt::{FunctionDefinition, Stmt},
         Interpreter,
@@ -32,6 +32,26 @@ impl Resolver {
                 self.define(&fun_def.name);
                 self.resolve_function_stmt(fun_def)
             }
+            Stmt::Expression(expr) => self.resolve_expr(expr),
+            Stmt::If(if_conditions) => {
+                self.resolve_expr(&if_conditions.condition)?;
+                self.resolve_stmt(&if_conditions.then_branch)?;
+                if let Some(else_branch) = &if_conditions.else_branch {
+                    self.resolve_stmt(else_branch)?
+                }
+                Ok(())
+            }
+            Stmt::Print(expr) => self.resolve_expr(expr),
+            Stmt::Return(_, value) => {
+                if let Some(expr) = value {
+                    self.resolve_expr(expr)?
+                }
+                Ok(())
+            }
+            Stmt::While(while_conditions) => {
+                self.resolve_expr(&while_conditions.condition)?;
+                self.resolve_stmt(&while_conditions.stmt_body)
+            }
             _ => todo!(),
         }
     }
@@ -52,7 +72,39 @@ impl Resolver {
         match expr {
             Expr::Variable { token } => self.resolve_var_expr(token, expr),
             Expr::Assignment { name, value } => self.resolve_assign_expr(name, value, expr),
-            _ => todo!(),
+            Expr::Binary {
+                left_expr,
+                operator: _,
+                right_expr,
+            } => {
+                self.resolve_expr(left_expr)?;
+                self.resolve_expr(right_expr)
+            }
+            Expr::Call {
+                callee,
+                paren: _,
+                arguments,
+            } => {
+                self.resolve_expr(callee)?;
+                for arg in arguments {
+                    self.resolve_expr(arg)?;
+                }
+                Ok(())
+            }
+            Expr::Grouping { expression } => self.resolve_expr(expression),
+            Expr::Literal { .. } => Ok(()),
+            Expr::Logical {
+                left,
+                operator: _,
+                right,
+            } => {
+                self.resolve_expr(left)?;
+                self.resolve_expr(right)
+            }
+            Expr::Unary {
+                token: _,
+                expression,
+            } => self.resolve_expr(expression),
         }
     }
 
